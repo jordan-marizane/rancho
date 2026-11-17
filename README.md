@@ -47,6 +47,6 @@ Cada linha deve começar por `OK`.
 
 - Build command: `npm run build`
 - Output directory: `dist`
-- Variáveis de ambiente: `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`
+- A configuração pública do Supabase está em `.env.production` (não precisa de variáveis no Cloudflare)
 
 Cada `git push` para `main` publica uma nova versão automaticamente.
