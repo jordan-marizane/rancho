@@ -85,3 +85,49 @@ h1 { font-size: 1.5rem; margin: 0 0 .5rem; }
   .tab { flex-direction: row; gap: 6px; font-size: .9rem; padding: 6px; }
   .content { padding-bottom: 32px; }
 }
+
+/* ---------- Componentes ---------- */
+h2 { font-size: 1.1rem; margin: 0; }
+.small { font-size: .85rem; }
+.center { text-align: center; }
+.stack { display: flex; flex-direction: column; gap: 12px; }
+.card {
+  background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 16px;
+}
+.top { display: flex; align-items: center; justify-content: space-between; }
+.who { color: var(--muted); font-size: .9rem; }
+.auth { max-width: 420px; margin: 8px auto; }
+
+label { display: flex; flex-direction: column; gap: 4px; font-size: .9rem; color: var(--muted); }
+input, select {
+  font: inherit; font-size: 16px; /* 16px evita o zoom automático no iPhone */
+  color: var(--text); background: var(--bg);
+  border: 1px solid var(--line); border-radius: 10px; padding: 12px; min-height: 48px; width: 100%;
+}
+input:focus, select:focus { outline: 2px solid var(--brand); outline-offset: 1px; }
+.code-input { text-transform: uppercase; letter-spacing: .15em; }
+
+.btn {
+  font: inherit; font-weight: 600; min-height: 48px; padding: 0 16px; border-radius: 12px; cursor: pointer;
+  border: 1px solid var(--line); background: var(--surface); color: var(--text);
+}
+.btn.primary { background: var(--brand); border-color: var(--brand); color: #fff; }
+.btn:disabled { opacity: .6; cursor: default; }
+.link { font: inherit; background: none; border: 0; color: var(--brand); padding: 8px 0; cursor: pointer; text-align: left; }
+.links { display: flex; flex-wrap: wrap; gap: 4px 16px; margin-top: 8px; }
+
+.msg { margin: 0; padding: 10px 12px; border-radius: 10px; font-size: .9rem; }
+.msg.error { background: #fde8e6; color: #8a1f14; }
+.msg.ok { background: var(--brand-soft); color: var(--text); }
+
+.seg { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; background: var(--bg); padding: 4px; border-radius: 12px; margin: 12px 0; }
+.seg button { font: inherit; min-height: 40px; border: 0; border-radius: 9px; background: transparent; color: var(--muted); cursor: pointer; }
+.seg button.on { background: var(--surface); color: var(--text); font-weight: 600; box-shadow: 0 1px 2px rgb(0 0 0 / .08); }
+
+.plain { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.tag { margin-left: 8px; font-size: .75rem; padding: 2px 8px; border-radius: 999px; background: var(--brand-soft); color: var(--brand); }
+.code { font-size: 1.6rem; font-weight: 700; letter-spacing: .2em; margin: 0; text-align: center; }
+
+@media (prefers-color-scheme: dark) {
+  .msg.error { background: #3b1a17; color: #ffb4a8; }
+}
