@@ -1,0 +1,11 @@
+// Configuração do Cloudflare Workers (alojamento de ficheiros estáticos, grátis).
+// "name" tem de ser igual ao nome do projeto no painel do Cloudflare.
+{
+  "name": "rancho",
+  "compatibility_date": "2026-11-01",
+  "assets": {
+    "directory": "./dist",
+    // Qualquer endereço da app (ex.: /rancho) devolve a página principal
+    "not_found_handling": "single-page-application"
+  }
+}
