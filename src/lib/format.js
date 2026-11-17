@@ -1,5 +1,11 @@
-const nf = new Intl.NumberFormat('pt-PT', { minimumFractionDigits: 0, maximumFractionDigits: 2 })
-export const mt = (v) => (v == null ? '—' : `${nf.format(Number(v))} MT`)
+// 20470.5 -> "20 470,50 MT" (espaço nos milhares, vírgula nos decimais)
+export const mt = (v) => {
+  if (v == null || Number.isNaN(Number(v))) return '—'
+  const n = Math.round(Number(v) * 100) / 100
+  const [int, dec] = Math.abs(n).toFixed(2).split('.')
+  const s = int.replace(/\B(?=(\d{3})+(?!\d))/g, '\u00a0') + (dec === '00' ? '' : `,${dec}`)
+  return `${n < 0 ? '−' : ''}${s} MT`
+}
 
 const MESES = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez']
 // d no formato AAAA-MM-DD
