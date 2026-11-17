@@ -1,5 +1,15 @@
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
+import NameListEditor from '../components/NameListEditor.vue'
+import { catalog, loadCatalog, addStore, updateStore, addCategory, updateCategory } from '../lib/catalog.js'
+
+const storeKinds = [
+  { value: 'supermercado', label: 'Supermercado' },
+  { value: 'mercearia', label: 'Mercearia' },
+  { value: 'mercado', label: 'Mercado' },
+  { value: 'outro', label: 'Outro' },
+]
+onMounted(() => isConfigured && session.household && loadCatalog())
 import { supabase, isConfigured } from '../lib/supabase.js'
 import { session, signOut } from '../lib/session.js'
 import { friendlyError } from '../lib/errors.js'
@@ -58,7 +68,12 @@ async function newCode() {
         <button class="btn" @click="signOut">Sair</button>
       </div>
 
-      <p class="muted small">Lojas, categorias, orçamento e exportação para Excel chegam nas próximas etapas.</p>
+      <NameListEditor title="Lojas" :items="catalog.stores" placeholder="Nova loja" :kinds="storeKinds"
+                      :on-add="addStore" :on-update="updateStore" />
+      <NameListEditor title="Categorias" :items="catalog.categories" placeholder="Nova categoria"
+                      :on-add="(n) => addCategory(n)" :on-update="updateCategory" />
+
+      <p class="muted small">Orçamento e exportação para Excel chegam nas próximas etapas.</p>
     </template>
   </section>
 </template>
