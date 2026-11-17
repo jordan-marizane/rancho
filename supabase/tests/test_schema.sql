@@ -55,6 +55,12 @@ select count(*) >= 1 as audit_ok from audit_log where table_name = 'purchases' a
 \set ON_ERROR_STOP 0
 update household_members set role = 'owner' where user_id = :B::uuid;
 \set ON_ERROR_STOP 1
+\set ON_ERROR_STOP 0
+update households set invite_code = 'AAAA' where id = :'hid';
+insert into audit_log (household_id, table_name, action) values (:'hid', 'x', 'INSERT');
+\set ON_ERROR_STOP 1
+select (select invite_code from households where id = :'hid') = :'code' as code_ok \gset
+\if :code_ok \echo 'OK  membro não muda o código de convite diretamente' \else \echo 'FALHA código alterado' \quit \endif
 
 -- Estranho (C) não vê nada e não consegue escrever
 select set_config('request.jwt.claim.sub', :C, false);

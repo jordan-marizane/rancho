@@ -426,6 +426,10 @@ grant execute on function public.create_household(text, text),
 grant select, insert, update, delete on
   public.stores, public.categories, public.products, public.months, public.list_items,
   public.purchases, public.fixed_expenses, public.month_expenses to authenticated;
+-- O Supabase dá todas as permissões ao "authenticated" por omissão: retirar o que não deve ser possível
+revoke insert, update on public.households, public.household_members from authenticated;
+revoke insert, update, delete, truncate on public.audit_log from authenticated;
+revoke truncate on all tables in schema public from authenticated;
 grant select, update (name) on public.households to authenticated;
 grant select, delete, update (display_name) on public.household_members to authenticated;
 grant select on public.audit_log to authenticated;
