@@ -1,6 +1,9 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import NameListEditor from '../components/NameListEditor.vue'
+import { exportPurchases, exportExpenses } from '../lib/resumo.js'
+const exporting = ref(false)
+async function doExport(fn) { exporting.value = true; error.value = ''; try { await fn() } catch (e) { error.value = friendlyError(e) } finally { exporting.value = false } }
 import { catalog, loadCatalog, addStore, updateStore, addCategory, updateCategory } from '../lib/catalog.js'
 
 const storeKinds = [
@@ -73,7 +76,12 @@ async function newCode() {
       <NameListEditor title="Categorias" :items="catalog.categories" placeholder="Nova categoria"
                       :on-add="(n) => addCategory(n)" :on-update="updateCategory" />
 
-      <p class="muted small">Orçamento e exportação para Excel chegam nas próximas etapas.</p>
+      <div class="card stack">
+        <h2>Cópia de segurança (Excel)</h2>
+        <p class="muted small" style="margin:0">Descarrega os dados num ficheiro que abre no Excel ou no Google Sheets. Façam isto de vez em quando para terem sempre uma cópia vossa.</p>
+        <button class="btn" :disabled="exporting" @click="doExport(exportPurchases)">⬇️ Todas as compras e preços</button>
+        <button class="btn" :disabled="exporting" @click="doExport(exportExpenses)">⬇️ Despesas fixas de todos os meses</button>
+      </div>
     </template>
   </section>
 </template>

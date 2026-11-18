@@ -239,3 +239,11 @@ select.mini { width: auto; min-height: 40px; padding: 4px 8px; }
 .card-link:active { background: var(--bg); }
 .checkline { flex-direction: row; align-items: center; gap: 10px; color: var(--text); }
 .checkline input { width: 22px; min-height: 22px; height: 22px; }
+.grow { flex: 1; }
+.down-text { color: var(--down); }
+.verdict { margin: 0; padding: 10px 12px; border-radius: 10px; font-weight: 600; }
+.verdict.good { background: var(--brand-soft); color: var(--down); }
+.verdict.bad { background: #fde8e6; color: #8a1f14; }
+@media (prefers-color-scheme: dark) { .verdict.bad { background: #3b1a17; color: #ffb4a8; } }
+.store-bar .small { display: flex; justify-content: space-between; margin-bottom: 4px; }
+.suggest { border-color: var(--brand); }
