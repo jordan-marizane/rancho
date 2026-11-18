@@ -69,8 +69,9 @@ export function priceStats(productId) {
 const hid = () => session.household.id
 
 export async function addStore(name, kind = 'supermercado') {
-  check(await supabase.from('stores').insert({ household_id: hid(), name: name.trim(), kind }))
+  const row = check(await supabase.from('stores').insert({ household_id: hid(), name: name.trim(), kind }).select().single())
   await loadCatalog(true)
+  return row
 }
 export async function updateStore(id, fields) {
   check(await supabase.from('stores').update(fields).eq('id', id))

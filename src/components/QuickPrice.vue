@@ -3,7 +3,7 @@
 // "Mesmo preço" = 1 toque. Caso contrário, escrever o valor e guardar.
 import { ref, computed, onMounted } from 'vue'
 import Sheet from './Sheet.vue'
-import { catalog, storeName } from '../lib/catalog.js'
+import { catalog, storeName, addStore } from '../lib/catalog.js'
 import { rancho, buy, unbuy, removeFromList, updateItem, boughtThisMonth, lastBefore } from '../lib/rancho.js'
 import { mt, monthLabel, dayLabel, today } from '../lib/format.js'
 import { memberName } from '../lib/session.js'
@@ -24,6 +24,13 @@ const date = ref(today())
 const busy = ref(false)
 const error = ref('')
 const confirmRemove = ref(false)
+const newStore = ref(null) // null = fechado; texto = a escrever
+const newStoreKind = ref('supermercado')
+const saveStore = () => run(async () => {
+  const s = await addStore(newStore.value, newStoreKind.value)
+  store.value = s.id
+  newStore.value = null
+})
 
 const value = computed(() => Number(String(price.value).replace(',', '.')))
 const valid = computed(() => String(price.value).trim() !== '' && Number.isFinite(value.value) && value.value >= 0)
@@ -101,6 +108,21 @@ const step = (d) => { qty.value = Math.max(1, Math.round((Number(qty.value) + d)
           <div class="chips">
             <button v-for="s in catalog.stores" :key="s.id" type="button" class="chip" :class="{ on: store === s.id }"
                     @click="store = s.id">{{ s.name }}</button>
+            <button v-if="newStore === null" type="button" class="chip add" @click="newStore = ''">+ Nova loja</button>
+          </div>
+          <div v-if="newStore !== null" class="new-store">
+            <input v-model="newStore" maxlength="80" placeholder="Nome da loja" aria-label="Nome da nova loja" autofocus
+                   @keydown.enter.prevent="newStore.trim() && saveStore()" />
+            <select v-model="newStoreKind" aria-label="Tipo de loja">
+              <option value="supermercado">Supermercado</option>
+              <option value="mercearia">Mercearia</option>
+              <option value="mercado">Mercado</option>
+              <option value="outro">Outro</option>
+            </select>
+            <div class="inline">
+              <button type="button" class="btn primary" :disabled="busy || !newStore.trim()" @click="saveStore">Adicionar loja</button>
+              <button type="button" class="btn" @click="newStore = null">Cancelar</button>
+            </div>
           </div>
         </div>
 

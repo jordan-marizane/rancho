@@ -232,3 +232,6 @@ select.mini { width: auto; min-height: 40px; padding: 4px 8px; }
 .stepper input { text-align: center; padding: 8px 4px; }
 .pick li { border-bottom: 1px solid var(--line); }
 .pick .link { width: 100%; min-height: 44px; }
+.chip.add { border-style: dashed; color: var(--brand); }
+.new-store { display: flex; flex-direction: column; gap: 8px; margin-top: 10px; padding: 12px; border-radius: 12px; background: var(--bg); }
+.lrow { transition: opacity .2s; }
