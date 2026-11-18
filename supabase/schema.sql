@@ -84,6 +84,7 @@ create table public.months (
   month         date not null check (extract(day from month) = 1),
   rancho_budget numeric(12,2) check (rancho_budget >= 0),
   total_budget  numeric(12,2) check (total_budget >= 0),
+  savings_goal  numeric(12,2) check (savings_goal >= 0),
   created_at    timestamptz not null default now(),
   created_by    uuid default auth.uid(),
   updated_at    timestamptz not null default now(),

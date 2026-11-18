@@ -1,6 +1,7 @@
 <script setup>
 import { ref, reactive, computed, onMounted } from 'vue'
 import Sheet from '../components/Sheet.vue'
+import StartMonth from '../components/StartMonth.vue'
 import { rancho, loadRancho, startMonth } from '../lib/rancho.js'
 import { despesas, loadDespesas, addFixed, updateMonthItem, togglePaid, removeItem, fixedSummary } from '../lib/despesas.js'
 import { memberName } from '../lib/session.js'
@@ -51,11 +52,7 @@ const remove = (stop) => run(async () => { await removeItem(editing.value, stop)
     <p v-if="error" class="msg error">{{ error }}</p>
     <p v-if="!rancho.loaded" class="muted">A carregar…</p>
 
-    <div v-else-if="!rancho.month" class="card stack">
-      <h2>Começar {{ monthLabel(rancho.monthStart) }}</h2>
-      <p class="muted">As despesas fixas e a lista do rancho do mês anterior são copiadas para este mês.</p>
-      <button class="btn primary" :disabled="busy" @click="begin">Começar o mês</button>
-    </div>
+    <StartMonth v-else-if="!rancho.month" @started="loadDespesas" />
 
     <template v-else>
       <div class="card summary">

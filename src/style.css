@@ -247,3 +247,16 @@ select.mini { width: auto; min-height: 40px; padding: 4px 8px; }
 @media (prefers-color-scheme: dark) { .verdict.bad { background: #3b1a17; color: #ffb4a8; } }
 .store-bar .small { display: flex; justify-content: space-between; margin-bottom: 4px; }
 .suggest { border-color: var(--brand); }
+.start-sticky { position: sticky; top: 64px; z-index: 4; background: var(--surface); padding: 8px 0; border-bottom: 1px solid var(--line); }
+.start-group { border: 1px solid var(--line); border-radius: 12px; padding: 0 12px; }
+.start-group summary { display: flex; align-items: center; gap: 8px; min-height: 48px; cursor: pointer; list-style: none; font-weight: 600; }
+.start-group summary::-webkit-details-marker { display: none; }
+.start-group summary > span:first-child { flex: 1; }
+.start-group summary::before { content: '▸'; color: var(--muted); }
+.start-group[open] summary::before { content: '▾'; }
+.pick-line { min-height: 44px; border-top: 1px solid var(--line); }
+.goal-box { background: var(--bg); border-radius: 12px; padding: 12px; }
+.tips li { display: grid; grid-template-columns: 24px 1fr; gap: 8px; font-size: .92rem; padding: 4px 0; }
+.trophies { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 8px; }
+.trophy { background: var(--bg); border-radius: 12px; padding: 10px; text-align: center; }
+.trophy b { display: block; font-size: 1.3rem; }
