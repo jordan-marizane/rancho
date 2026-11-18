@@ -139,5 +139,6 @@ const pct = (x) => `${Math.round(Math.abs(x) * 100)}%`
         </div>
       </div>
     </template>
+    <p v-else class="muted">A carregar…</p>
   </section>
 </template>

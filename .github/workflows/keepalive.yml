@@ -1,6 +1,6 @@
 # "Toque" diário ao Supabase para o plano gratuito não pausar o projeto
-# por inatividade. Precisa de dois "secrets" no repositório GitHub:
-#   SUPABASE_URL e SUPABASE_ANON_KEY (Settings > Secrets and variables > Actions)
+# por inatividade (pausa ao fim de 7 dias sem uso).
+# Usa a configuração pública que já está em .env.production: não precisa de secrets.
 name: Manter Supabase ativo
 on:
   schedule:
@@ -10,10 +10,10 @@ jobs:
   ping:
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v4
       - name: Chamar a função ping()
-        env:
-          URL: ${{ secrets.SUPABASE_URL }}
-          KEY: ${{ secrets.SUPABASE_ANON_KEY }}
         run: |
-          if [ -z "$URL" ] || [ -z "$KEY" ]; then echo "Secrets ainda não configurados"; exit 0; fi
-          curl -sf -X POST "$URL/rest/v1/rpc/ping" -H "apikey: $KEY" -H "Authorization: Bearer $KEY" -H "Content-Type: application/json" -d '{}'
+          set -a; . ./.env.production; set +a
+          curl -sf -X POST "$VITE_SUPABASE_URL/rest/v1/rpc/ping" \
+            -H "apikey: $VITE_SUPABASE_ANON_KEY" -H "Authorization: Bearer $VITE_SUPABASE_ANON_KEY" \
+            -H "Content-Type: application/json" -d '{}'
