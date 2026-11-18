@@ -48,6 +48,12 @@ export async function setBudget(value) {
   rancho.month.rancho_budget = value === '' ? null : Number(value)
 }
 
+export async function setTotalBudget(value) {
+  const v = value === '' || value == null ? null : Number(value)
+  check(await supabase.from('months').update({ total_budget: v }).eq('id', rancho.month.id))
+  rancho.month.total_budget = v
+}
+
 export async function addToList(productId, storeId = null, qty = 1) {
   const row = check(await supabase.from('list_items').insert({
     household_id: session.household.id, month_id: rancho.month.id, product_id: productId,

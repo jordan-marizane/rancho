@@ -235,3 +235,7 @@ select.mini { width: auto; min-height: 40px; padding: 4px 8px; }
 .chip.add { border-style: dashed; color: var(--brand); }
 .new-store { display: flex; flex-direction: column; gap: 8px; margin-top: 10px; padding: 12px; border-radius: 12px; background: var(--bg); }
 .lrow { transition: opacity .2s; }
+.card-link { text-decoration: none; color: inherit; }
+.card-link:active { background: var(--bg); }
+.checkline { flex-direction: row; align-items: center; gap: 10px; color: var(--text); }
+.checkline input { width: 22px; min-height: 22px; height: 22px; }
