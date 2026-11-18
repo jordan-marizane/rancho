@@ -43,10 +43,12 @@ psql -d rancho_test -f supabase/tests/test_schema.sql
 
 Cada linha deve começar por `OK`.
 
-## Publicar (Cloudflare Pages)
+## Publicar (Cloudflare Workers)
 
-- Build command: `npm run build`
-- Output directory: `dist`
+- Configuração em `wrangler.jsonc` (ficheiros estáticos de `dist`, modo SPA)
+- Endereço: https://rancho.jordanmarizane.workers.dev
 - A configuração pública do Supabase está em `.env.production` (não precisa de variáveis no Cloudflare)
 
 Cada `git push` para `main` publica uma nova versão automaticamente.
+
+Manutenção, backups, limites gratuitos e problemas conhecidos: ver [docs/GUIA.md](docs/GUIA.md).
