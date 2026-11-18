@@ -9,6 +9,19 @@ import Trend from '../components/Trend.vue'
 import ProductSheet from '../components/ProductSheet.vue'
 
 const q = ref('')
+// Categorias recolhidas (guardado neste telemóvel). Na primeira visita, todas recolhidas.
+const STORE_KEY = 'produtos-abertas'
+function readOpen() { try { const v = localStorage.getItem(STORE_KEY); return v ? new Set(JSON.parse(v)) : new Set() } catch { return new Set() } }
+const openGroups = ref(readOpen())
+function saveOpen() { try { localStorage.setItem(STORE_KEY, JSON.stringify([...openGroups.value])) } catch { /* sem armazenamento */ } }
+const gkey = (g) => g.id ?? 'none'
+const isOpen = (g) => !!q.value.trim() || openGroups.value.has(gkey(g))
+function toggleGroup(g) {
+  const s = new Set(openGroups.value); s.has(gkey(g)) ? s.delete(gkey(g)) : s.add(gkey(g))
+  openGroups.value = s; saveOpen()
+}
+const allOpen = computed(() => groups.value.length > 0 && groups.value.every((g) => openGroups.value.has(gkey(g))))
+function toggleAll() { openGroups.value = allOpen.value ? new Set() : new Set(groups.value.map(gkey)); saveOpen() }
 const importCount = CATEGORIES.reduce((n, c) => n + c.items.length, 0)
 const open = ref(null) // id do produto aberto, ou 'novo'
 const error = ref('')
@@ -66,9 +79,18 @@ async function doImport() {
 
     <p v-if="importing && catalog.products.length" class="msg ok">{{ importing }}</p>
 
+    <div v-if="groups.length > 1 && !q.trim()" class="row-end">
+      <button class="link" @click="toggleAll">{{ allOpen ? 'Recolher todas' : 'Abrir todas' }}</button>
+    </div>
     <div v-for="g in groups" :key="g.id ?? 'none'" class="group">
-      <h2 class="group-title">{{ g.name }} <span class="muted small">({{ g.items.length }})</span></h2>
-      <ul class="plist">
+      <h2 class="group-title">
+        <button class="group-toggle" :aria-expanded="isOpen(g)" @click="toggleGroup(g)">
+          <span class="caret" aria-hidden="true">{{ isOpen(g) ? '▾' : '▸' }}</span>
+          <span class="grow">{{ g.name }}</span>
+          <span class="muted small">{{ g.items.length }}</span>
+        </button>
+      </h2>
+      <ul v-if="isOpen(g)" class="plist">
         <li v-for="p in g.items" :key="p.id">
           <button class="prow" @click="open = p.id">
             <span class="pname">{{ p.name }}</span>
