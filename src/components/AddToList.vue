@@ -34,7 +34,7 @@ const createAndAdd = () => run(async () => {
 <template>
   <Sheet title="Adicionar à lista" @close="emit('close')">
     <div class="stack">
-      <input v-model="q" type="search" placeholder="🔍 Procurar ou escrever produto novo" autofocus />
+      <input :value="q" @input="q = $event.target.value" type="search" placeholder="🔍 Procurar ou escrever produto novo" autofocus />
       <button v-if="q.trim() && !exact" class="btn" :disabled="busy" @click="createAndAdd">+ Criar "{{ q.trim() }}" e adicionar</button>
       <p v-if="error" class="msg error">{{ error }}</p>
       <ul class="plain pick">

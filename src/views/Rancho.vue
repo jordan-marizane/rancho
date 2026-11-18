@@ -50,7 +50,8 @@ const rows = computed(() => {
     .filter((r) => !t || norm(r.p.name).includes(t))
     .filter((r) => !store.value || (r.it.store_id ?? '') === store.value)
     .filter((r) => !hideDone.value || !r.isDone)
-    .sort((a, b) => a.p.name.localeCompare(b.p.name, 'pt'))
+    // Por comprar em cima, já no cesto em baixo; depois por nome
+    .sort((a, b) => (a.isDone - b.isDone) || a.p.name.localeCompare(b.p.name, 'pt'))
 })
 
 const groups = computed(() => {
@@ -134,7 +135,7 @@ const toggleDone = (r) => run(() => updateItem(r.it.id, { done: !r.it.done }))
         </button>
       </div>
       <div class="toolbar">
-        <input v-model="q" type="search" placeholder="🔍 Procurar na lista" aria-label="Procurar na lista" />
+        <input :value="q" @input="q = $event.target.value" type="search" placeholder="🔍 Procurar na lista" aria-label="Procurar na lista" />
         <div class="seg small-seg">
           <button :class="{ on: groupBy === 'categoria' }" @click="setGroup('categoria')">Categoria</button>
           <button :class="{ on: groupBy === 'loja' }" @click="setGroup('loja')">Loja</button>

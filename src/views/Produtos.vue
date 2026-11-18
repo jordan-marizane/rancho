@@ -46,7 +46,7 @@ async function doImport() {
       <button class="btn primary small-btn" @click="open = 'novo'">+ Produto</button>
     </div>
 
-    <input v-model="q" type="search" placeholder="🔍 Procurar produto…" aria-label="Procurar produto" class="search" />
+    <input :value="q" @input="q = $event.target.value" type="search" placeholder="🔍 Procurar produto…" aria-label="Procurar produto" class="search" />
 
     <p v-if="error" class="msg error">{{ error }}</p>
     <p v-if="!catalog.loaded && catalog.loading" class="muted">A carregar…</p>

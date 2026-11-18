@@ -2,7 +2,7 @@
 import { ref, computed, reactive } from 'vue'
 import Sheet from './Sheet.vue'
 import Trend from './Trend.vue'
-import { catalog, priceStats, storeName, saveProduct, archiveProduct, addPurchase, deletePurchase } from '../lib/catalog.js'
+import { catalog, priceStats, storeName, saveProduct, archiveProduct, addPurchase, deletePurchase, addStore } from '../lib/catalog.js'
 import { memberName } from '../lib/session.js'
 import { mt, dayLabel, today } from '../lib/format.js'
 import { friendlyError } from '../lib/errors.js'
@@ -23,6 +23,9 @@ const price = reactive({ store_id: stats.value?.last?.store_id ?? '', price: '',
 const error = ref('')
 const busy = ref(false)
 const confirmArchive = ref(false)
+const newStore = ref(null)
+const saveStore = () => run(async () => { const s = await addStore(newStore.value); price.store_id = s.id; newStore.value = null })
+const onStoreChange = (e) => { if (e.target.value === '__nova') { price.store_id = ''; newStore.value = '' } }
 
 const similar = computed(() => {
   if (product.value || form.name.trim().length < 3) return []
@@ -74,14 +77,19 @@ const archive = () => run(async () => { await archiveProduct(product.value.id); 
         </div>
         <div class="row2">
           <label>Loja
-            <select v-model="price.store_id">
+            <select v-model="price.store_id" @change="onStoreChange">
               <option value="">Sem loja</option>
               <option v-for="s in catalog.stores" :key="s.id" :value="s.id">{{ s.name }}</option>
+              <option value="__nova">+ Nova loja…</option>
             </select>
           </label>
           <label>Data
             <input v-model="price.purchased_on" type="date" required />
           </label>
+        </div>
+        <div v-if="newStore !== null" class="inline">
+          <input v-model="newStore" maxlength="80" placeholder="Nome da nova loja" aria-label="Nome da nova loja" autofocus />
+          <button type="button" class="btn primary" :disabled="busy || !newStore.trim()" @click="saveStore">OK</button>
         </div>
         <button class="btn primary" :disabled="busy">Guardar preço</button>
       </form>
