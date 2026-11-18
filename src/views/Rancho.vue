@@ -77,6 +77,22 @@ const storeCounts = computed(() => {
 const budget = computed(() => rancho.month?.rancho_budget ?? null)
 const pct = computed(() => (budget.value ? Math.min(100, Math.round((sum.value.spent / budget.value) * 100)) : 0))
 
+// Grupos abertos (guardado neste telemóvel). Começam recolhidos; ao pesquisar abrem todos.
+const openGroups = ref(new Set((() => { try { return JSON.parse(localGet('rancho.abertas', '[]')) } catch { return [] } })()))
+const gkey = (g) => `${groupBy.value}:${g.id || 'none'}`
+const isOpen = (g) => !!q.value.trim() || openGroups.value.has(gkey(g))
+function saveOpen() { localSet('rancho.abertas', JSON.stringify([...openGroups.value])) }
+function toggleGroup(g) {
+  const s = new Set(openGroups.value); s.has(gkey(g)) ? s.delete(gkey(g)) : s.add(gkey(g))
+  openGroups.value = s; saveOpen()
+}
+const allOpen = computed(() => groups.value.length > 0 && groups.value.every((g) => openGroups.value.has(gkey(g))))
+function toggleAll() {
+  const s = new Set([...openGroups.value].filter((k) => !k.startsWith(groupBy.value + ':')))
+  if (!allOpen.value) groups.value.forEach((g) => s.add(gkey(g)))
+  openGroups.value = s; saveOpen()
+}
+
 function pickStore(id) { store.value = id; localSet('rancho.store', id) }
 function setGroup(g) { groupBy.value = g; localSet('rancho.group', g) }
 function toggleHide() { hideDone.value = !hideDone.value; localSet('rancho.hide', hideDone.value ? '1' : '0') }
@@ -141,13 +157,20 @@ const toggleDone = (r) => run(() => updateItem(r.it.id, { done: !r.it.done }))
       <div class="links">
         <button class="link" @click="toggleHide">{{ hideDone ? 'Mostrar os do cesto' : 'Esconder os do cesto' }}</button>
         <button class="link" @click="adding = true">+ Adicionar produto</button>
+        <button v-if="groups.length > 1 && !q.trim()" class="link" @click="toggleAll">{{ allOpen ? 'Recolher todas' : 'Abrir todas' }}</button>
       </div>
 
       <p v-if="!rows.length" class="muted">Nada para mostrar com estes filtros.</p>
 
       <div v-for="g in groups" :key="g.id || 'none'" class="group">
-        <h2 class="group-title">{{ g.name }} <span class="muted small">· {{ mt(g.subtotal) }}</span></h2>
-        <ul class="plist">
+        <h2 class="group-title">
+          <button class="group-toggle" :aria-expanded="isOpen(g)" @click="toggleGroup(g)">
+            <span class="caret" aria-hidden="true">{{ isOpen(g) ? '▾' : '▸' }}</span>
+            <span class="grow">{{ g.name }}</span>
+            <span class="muted small">{{ g.items.filter((r) => r.isDone).length }}/{{ g.items.length }} · {{ mt(g.subtotal) }}</span>
+          </button>
+        </h2>
+        <ul v-if="isOpen(g)" class="plist">
           <li v-for="r in g.items" :key="r.it.id" class="lrow" :class="{ done: r.isDone }">
             <button class="check" :aria-label="r.isDone ? 'Tirar do cesto' : 'Pôr no cesto sem preço'"
                     :disabled="r.bought.length > 0" @click="toggleDone(r)">{{ r.isDone ? '✓' : '' }}</button>
