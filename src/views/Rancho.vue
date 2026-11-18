@@ -6,6 +6,7 @@ import { mt, monthLabel, norm } from '../lib/format.js'
 import { friendlyError } from '../lib/errors.js'
 import QuickPrice from '../components/QuickPrice.vue'
 import AddToList from '../components/AddToList.vue'
+import StartMonth from '../components/StartMonth.vue'
 
 const error = ref('')
 const busy = ref(false)
@@ -96,11 +97,7 @@ const toggleDone = (r) => run(() => updateItem(r.it.id, { done: !r.it.done }))
     <p v-if="!rancho.loaded" class="muted">A carregar…</p>
 
     <!-- Mês ainda não aberto -->
-    <div v-else-if="!rancho.month" class="card stack">
-      <h2>Começar o rancho de {{ monthLabel(rancho.monthStart) }}</h2>
-      <p class="muted">A lista do mês anterior é copiada, com as quantidades e as lojas. Depois podem tirar ou acrescentar produtos.</p>
-      <button class="btn primary" :disabled="busy" @click="run(startMonth)">Começar o mês</button>
-    </div>
+    <StartMonth v-else-if="!rancho.month" />
 
     <template v-else>
       <!-- Resumo -->

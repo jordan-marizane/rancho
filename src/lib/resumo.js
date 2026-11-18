@@ -59,7 +59,32 @@ export function monthSummary(month, prev, expenses) {
     budgetTotal: month.total_budget != null ? Number(month.total_budget) : null,
     budgetRancho: month.rancho_budget != null ? Number(month.rancho_budget) : null,
     priceEffect, up, down, stores, unpaid: expenses.filter((e) => !e.paid_at),
+    goal: month.savings_goal != null ? Number(month.savings_goal) : null,
+    savedVsPrev: prevRancho ? prevRancho - spentRancho : null,
   }
+}
+
+// Conquistas ao longo dos meses (só meses com compras de rancho)
+export function achievements(months) {
+  let withinBudget = 0, withBudget = 0, goalsMet = 0, goals = 0, priceSavings = 0, bestSaving = 0
+  for (let i = 0; i < months.length; i++) {
+    const m = months[i]
+    const spent = ranchoSpent(m.id)
+    if (!spent) continue
+    if (m.rancho_budget != null) { withBudget++; if (spent <= Number(m.rancho_budget)) withinBudget++ }
+    const prevSpent = i > 0 ? ranchoSpent(months[i - 1].id) : 0
+    if (m.savings_goal != null && prevSpent) { goals++; if (prevSpent - spent >= Number(m.savings_goal)) goalsMet++ }
+    if (prevSpent) bestSaving = Math.max(bestSaving, prevSpent - spent)
+    // Poupança por preços mais baixos (face ao último preço antes desse mês)
+    const seen = new Set()
+    for (const p of catalog.purchases) {
+      if (p.month_id !== m.id || seen.has(p.product_id)) continue
+      seen.add(p.product_id)
+      const ref = catalog.purchases.find((x) => x.product_id === p.product_id && x.purchased_on < m.month)
+      if (ref) priceSavings += (Number(ref.price) - Number(p.price)) * Number(p.quantity)
+    }
+  }
+  return { withinBudget, withBudget, goalsMet, goals, priceSavings, bestSaving }
 }
 
 // Sugestão de orçamento do rancho: 5% abaixo do que gastaram no mês anterior,

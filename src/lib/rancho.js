@@ -37,10 +37,37 @@ export async function refreshAll() {
   await loadRancho(rancho.monthStart ?? currentMonthStart())
 }
 
-// Abre o mês: copia a lista, o orçamento e as despesas fixas do mês anterior
-export async function startMonth() {
-  check(await supabase.rpc('start_month', { hid: session.household.id, p_month: rancho.monthStart }))
+// Abre o mês: copia a lista, o orçamento e as despesas fixas do mês anterior.
+// Opções: keep = ids dos produtos a levar (os outros saem da lista),
+//         goal = meta de poupança do rancho, budget = limite do rancho.
+export async function startMonth({ keep = null, goal = null, budget } = {}) {
+  const monthId = check(await supabase.rpc('start_month', { hid: session.household.id, p_month: rancho.monthStart }))
+  if (keep) {
+    const items = check(await supabase.from('list_items').select('id, product_id').eq('month_id', monthId))
+    const drop = items.filter((i) => !keep.has(i.product_id)).map((i) => i.id)
+    for (let i = 0; i < drop.length; i += 100) {
+      check(await supabase.from('list_items').delete().in('id', drop.slice(i, i + 100)))
+    }
+  }
+  const fields = {}
+  if (goal != null) fields.savings_goal = goal
+  if (budget !== undefined) fields.rancho_budget = budget
+  if (Object.keys(fields).length) check(await supabase.from('months').update(fields).eq('id', monthId))
   await loadRancho(rancho.monthStart)
+}
+
+// O mês anterior (o mais recente antes deste) e a lista dele, para escolher o que levar
+export async function loadPrevPlan() {
+  const prev = check(await supabase.from('months').select('*').eq('household_id', session.household.id)
+    .lt('month', rancho.monthStart).order('month', { ascending: false }).limit(1).maybeSingle())
+  const items = prev ? check(await supabase.from('list_items').select('*').eq('month_id', prev.id)) : []
+  return { prev, items }
+}
+
+export async function setGoal(goal, budget) {
+  check(await supabase.from('months').update({ savings_goal: goal, rancho_budget: budget }).eq('id', rancho.month.id))
+  rancho.month.savings_goal = goal
+  rancho.month.rancho_budget = budget
 }
 
 export async function setBudget(value) {

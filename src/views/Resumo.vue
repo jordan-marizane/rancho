@@ -1,7 +1,7 @@
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
 import { loadCatalog } from '../lib/catalog.js'
-import { loadMonths, loadMonthExpenses, monthSummary } from '../lib/resumo.js'
+import { loadMonths, loadMonthExpenses, monthSummary, achievements } from '../lib/resumo.js'
 import { currentMonthStart } from '../lib/rancho.js'
 import { mt, monthLabel } from '../lib/format.js'
 import { friendlyError } from '../lib/errors.js'
@@ -33,6 +33,7 @@ watch(month, async (m) => {
 
 // Só mostra o resumo quando as despesas desse mês já chegaram (evita números incompletos)
 const s = computed(() => (month.value && expensesFor.value === month.value.id ? monthSummary(month.value, prev.value, expenses.value) : null))
+const trophies = computed(() => achievements(months.value))
 const pct = (x) => `${Math.round(Math.abs(x) * 100)}%`
 </script>
 
@@ -89,6 +90,14 @@ const pct = (x) => `${Math.round(Math.abs(x) * 100)}%`
         </p>
       </div>
 
+      <!-- Meta de poupança -->
+      <div v-if="s.goal" class="card stack">
+        <h2>🎯 Meta: poupar {{ mt(s.goal) }}</h2>
+        <p v-if="s.savedVsPrev != null && s.savedVsPrev >= s.goal" class="verdict good">🎉 Parabéns! Pouparam {{ mt(s.savedVsPrev) }} no rancho face a {{ monthLabel(prev.month) }}.</p>
+        <p v-else-if="s.savedVsPrev != null && s.savedVsPrev > 0" class="verdict bad">Pouparam {{ mt(s.savedVsPrev) }}: faltaram {{ mt(s.goal - s.savedVsPrev) }} para a meta. Quase lá!</p>
+        <p v-else-if="s.savedVsPrev != null" class="verdict bad">Este mês o rancho custou {{ mt(-s.savedVsPrev) }} mais que em {{ monthLabel(prev.month) }}.</p>
+      </div>
+
       <!-- Subidas e descidas -->
       <div v-if="s.up.length" class="card stack">
         <h2>🔴 O que subiu ({{ s.up.length }})</h2>
@@ -109,6 +118,17 @@ const pct = (x) => `${Math.round(Math.abs(x) * 100)}%`
         </ul>
       </div>
       <button v-if="s.up.length > 5 || s.down.length > 5" class="link" @click="showAll = !showAll">{{ showAll ? 'Mostrar menos' : 'Ver todas as subidas e descidas' }}</button>
+
+      <!-- Conquistas -->
+      <div v-if="trophies.withBudget || trophies.goals || trophies.priceSavings > 0" class="card stack">
+        <h2>🏆 Conquistas</h2>
+        <div class="trophies">
+          <div v-if="trophies.withBudget" class="trophy"><b>{{ trophies.withinBudget }}/{{ trophies.withBudget }}</b><span class="small muted">meses com o rancho dentro do limite</span></div>
+          <div v-if="trophies.goals" class="trophy"><b>{{ trophies.goalsMet }}/{{ trophies.goals }}</b><span class="small muted">metas de poupança cumpridas</span></div>
+          <div v-if="trophies.priceSavings > 0" class="trophy"><b>{{ mt(trophies.priceSavings) }}</b><span class="small muted">poupados com preços mais baixos</span></div>
+          <div v-if="trophies.bestSaving > 0" class="trophy"><b>{{ mt(trophies.bestSaving) }}</b><span class="small muted">melhor poupança num mês</span></div>
+        </div>
+      </div>
 
       <!-- Por loja -->
       <div v-if="s.stores.length" class="card stack">
