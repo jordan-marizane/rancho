@@ -1,6 +1,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import StartMonth from '../components/StartMonth.vue'
+import InstallButton from '../components/InstallButton.vue'
 import { rancho, loadRancho, summary, setTotalBudget, setBudget, setGoal } from '../lib/rancho.js'
 import { despesas, loadDespesas, fixedSummary } from '../lib/despesas.js'
 import { session } from '../lib/session.js'
@@ -72,6 +73,7 @@ const begin = () => run(async () => { await loadDespesas(); await loadPrev() })
 <template>
   <section class="stack">
     <h1>Olá, {{ session.member?.display_name }} <span class="muted month-name">· {{ rancho.monthStart ? monthLabel(rancho.monthStart) : '' }}</span></h1>
+    <InstallButton />
     <p v-if="error" class="msg error">{{ error }}</p>
     <p v-if="!rancho.loaded" class="muted">A carregar…</p>
 

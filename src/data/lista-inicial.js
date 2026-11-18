@@ -1,4 +1,4 @@
-// Lista do rancho importada das notas do Jordan (novembro de 2026).
+// Lista do rancho importada das notas do Jordan (18 de novembro de 2026).
 // Formato de cada produto: [nome, preçoAnterior, preçoRecente, opções]
 //   * preçoAnterior = valor antes da "/" nas notas (mês anterior)
 //   * preçoRecente  = valor depois da "/", ou o único valor (rancho mais recente)
@@ -7,7 +7,9 @@
 // Os preços são o valor de UMA unidade quando qty > 1 vem de "120 * 2"; caso contrário,
 // são o valor total da linha (ex.: "Sabonete (5 un)" custa 275 pelo pacote).
 
-export const MONTHS = { anterior: '2026-10-01', recente: '2026-11-01' }
+// O rancho é feito entre os dias 20 e 30 de cada mês: o preço depois da "/" é do rancho
+// de outubro (20-30 out) e o anterior é de setembro. Novembro começa vazio.
+export const MONTHS = { anterior: '2026-09-01', recente: '2026-10-01' }
 
 export const STORES = [
   { name: 'China Mall', kind: 'supermercado' },
