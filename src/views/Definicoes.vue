@@ -1,6 +1,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import NameListEditor from '../components/NameListEditor.vue'
+import InstallButton from '../components/InstallButton.vue'
 import { exportPurchases, exportExpenses } from '../lib/resumo.js'
 const exporting = ref(false)
 async function doExport(fn) { exporting.value = true; error.value = ''; try { await fn() } catch (e) { error.value = friendlyError(e) } finally { exporting.value = false } }
@@ -68,6 +69,7 @@ async function newCode() {
       <div class="card stack">
         <h2>Conta</h2>
         <p class="muted">{{ session.user.email }}</p>
+        <InstallButton variant="button" />
         <button class="btn" @click="signOut">Sair</button>
       </div>
 
