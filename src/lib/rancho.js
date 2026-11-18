@@ -50,6 +50,13 @@ export async function startMonth({ keep = null, goal = null, budget } = {}) {
     }
   }
   const fields = {}
+  // A reserva para imprevistos passa do mês anterior (a função start_month ainda não a copia)
+  const [{ data: cur }, { data: prev }] = await Promise.all([
+    supabase.from('months').select('*').eq('id', monthId).maybeSingle(),
+    supabase.from('months').select('*').eq('household_id', session.household.id).lt('month', rancho.monthStart)
+      .order('month', { ascending: false }).limit(1).maybeSingle(),
+  ])
+  if (cur && 'reserve_budget' in cur && cur.reserve_budget == null && prev?.reserve_budget != null) fields.reserve_budget = prev.reserve_budget
   if (goal != null) fields.savings_goal = goal
   if (budget !== undefined) fields.rancho_budget = budget
   if (Object.keys(fields).length) check(await supabase.from('months').update(fields).eq('id', monthId))
@@ -73,6 +80,12 @@ export async function setGoal(goal, budget) {
 export async function setBudget(value) {
   check(await supabase.from('months').update({ rancho_budget: value === '' ? null : Number(value) }).eq('id', rancho.month.id))
   rancho.month.rancho_budget = value === '' ? null : Number(value)
+}
+
+export async function setReserve(value) {
+  const v = value === '' || value == null ? null : Number(value)
+  check(await supabase.from('months').update({ reserve_budget: v }).eq('id', rancho.month.id))
+  rancho.month.reserve_budget = v
 }
 
 export async function setTotalBudget(value) {

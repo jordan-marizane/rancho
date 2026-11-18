@@ -1,7 +1,7 @@
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
 import { loadCatalog } from '../lib/catalog.js'
-import { loadMonths, loadMonthExpenses, monthSummary, achievements } from '../lib/resumo.js'
+import { loadMonths, loadMonthExpenses, loadMonthExtras, monthSummary, achievements } from '../lib/resumo.js'
 import { currentMonthStart } from '../lib/rancho.js'
 import { mt, monthLabel } from '../lib/format.js'
 import { friendlyError } from '../lib/errors.js'
@@ -9,6 +9,7 @@ import { friendlyError } from '../lib/errors.js'
 const months = ref([])
 const idx = ref(-1)
 const expenses = ref([])
+const extras = ref([])
 const expensesFor = ref(null) // id do mês a que as despesas carregadas pertencem
 const error = ref('')
 const loading = ref(true)
@@ -27,12 +28,16 @@ const prev = computed(() => (idx.value > 0 ? months.value[idx.value - 1] : null)
 watch(month, async (m) => {
   showAll.value = false
   if (!m) return
-  try { expenses.value = await loadMonthExpenses(m.id) } catch (e) { error.value = friendlyError(e); expenses.value = [] }
+  try {
+    const [e, x] = await Promise.all([loadMonthExpenses(m.id), loadMonthExtras(m.id)])
+    if (month.value?.id !== m.id) return // entretanto mudaram de mês
+    expenses.value = e; extras.value = x
+  } catch (e) { error.value = friendlyError(e); expenses.value = []; extras.value = [] }
   expensesFor.value = m.id
 })
 
 // Só mostra o resumo quando as despesas desse mês já chegaram (evita números incompletos)
-const s = computed(() => (month.value && expensesFor.value === month.value.id ? monthSummary(month.value, prev.value, expenses.value) : null))
+const s = computed(() => (month.value && expensesFor.value === month.value.id ? monthSummary(month.value, prev.value, expenses.value, extras.value) : null))
 const trophies = computed(() => achievements(months.value))
 const pct = (x) => `${Math.round(Math.abs(x) * 100)}%`
 </script>
@@ -63,8 +68,26 @@ const pct = (x) => `${Math.round(Math.abs(x) * 100)}%`
         <p v-if="s.budgetTotal != null" class="verdict" :class="s.spentTotal > s.budgetTotal ? 'bad' : 'good'">
           {{ s.spentTotal > s.budgetTotal ? `Saíram do orçamento em ${mt(s.spentTotal - s.budgetTotal)}` : `Ficaram dentro do orçamento: sobraram ${mt(s.budgetTotal - s.spentTotal)}` }}
         </p>
-        <p class="muted small" style="margin:0">Despesas fixas pagas {{ mt(s.fixedPaid) }} de {{ mt(s.fixedTotal) }} · rancho {{ mt(s.spentRancho) }}</p>
+        <p class="muted small" style="margin:0">Despesas fixas pagas {{ mt(s.fixedPaid) }} de {{ mt(s.fixedTotal) }} · rancho {{ mt(s.spentRancho) }} · outras {{ mt(s.extrasTotal) }}</p>
         <p v-if="s.unpaid.length" class="small up-text" style="margin:0">Por pagar: {{ s.unpaid.map((e) => e.name).join(', ') }}</p>
+      </div>
+
+      <!-- Outras despesas -->
+      <div v-if="s.extrasTotal || s.reserve != null" class="card stack">
+        <h2>📌 Outras despesas</h2>
+        <div class="sum-grid">
+          <div><div class="muted small">Reserva</div><b>{{ s.reserve != null ? mt(s.reserve) : '—' }}</b></div>
+          <div><div class="muted small">Gasto</div><b>{{ mt(s.extrasTotal) }}</b></div>
+          <div><div class="muted small">{{ s.reserve != null && s.extrasTotal > s.reserve ? 'Passou' : 'Sobrou' }}</div>
+            <b :class="{ 'up-text': s.reserve != null && s.extrasTotal > s.reserve }">{{ s.reserve != null ? mt(Math.abs(s.reserve - s.extrasTotal)) : '—' }}</b></div>
+        </div>
+        <p v-if="s.reserve != null" class="verdict" :class="s.extrasTotal > s.reserve ? 'bad' : 'good'">
+          {{ s.extrasTotal > s.reserve ? `Os imprevistos passaram a reserva em ${mt(s.extrasTotal - s.reserve)}` : `Os imprevistos couberam na reserva: usaram ${Math.round(s.reserve ? s.extrasTotal / s.reserve * 100 : 0)}%` }}
+        </p>
+        <div v-for="c in s.extrasByCat" :key="c.id" class="store-bar">
+          <div class="small"><span>{{ c.icon }} {{ c.label }}</span><b>{{ mt(c.value) }}</b></div>
+          <div class="bar"><span :style="{ width: Math.round(c.value / s.extrasByCat[0].value * 100) + '%' }"></span></div>
+        </div>
       </div>
 
       <!-- Rancho -->
