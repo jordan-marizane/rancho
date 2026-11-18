@@ -271,3 +271,13 @@ select.mini { width: auto; min-height: 40px; padding: 4px 8px; }
 .row-form { display: flex; gap: 8px; }
 .row-form input { flex: 1; min-width: 0; }
 .chip.static { cursor: default; min-height: 32px; font-size: .85rem; }
+
+/* Categorias que abrem e fecham (Produtos) */
+.row-end { display: flex; justify-content: flex-end; margin-bottom: -8px; }
+.group-toggle {
+  font: inherit; font-weight: 600; width: 100%; min-height: 44px; display: flex; align-items: center; gap: 8px;
+  padding: 0 12px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); color: var(--text);
+  cursor: pointer; text-align: left;
+}
+.group-toggle[aria-expanded="true"] { border-color: transparent; background: transparent; padding-left: 4px; }
+.caret { width: 1em; color: var(--muted); }
