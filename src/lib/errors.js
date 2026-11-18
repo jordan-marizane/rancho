@@ -9,6 +9,7 @@ const map = [
   [/failed to fetch|network/i, 'Sem ligação à internet. Tenta de novo.'],
   [/duplicate key|unique/i, 'Já existe um registo com esse nome.'],
   [/savings_goal/i, 'Falta atualizar a base de dados: corram o ficheiro 003_meta_poupanca.sql no Supabase.'],
+  [/extra_expenses|reserve_budget|column .*variable/i, 'Falta atualizar a base de dados: corram o ficheiro 006_despesas_variaveis.sql no Supabase.'],
 ]
 
 export function friendlyError(err) {

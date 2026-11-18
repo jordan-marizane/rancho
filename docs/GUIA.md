@@ -27,6 +27,13 @@ Endereço da app: https://rancho.jordanmarizane.workers.dev
 | O rancho é feito entre os dias 20 e 30 | As datas da importação foram ajustadas, e novembro fica livre para uso real |
 | Leite "por caixa" e "por unidade" misturados geravam dicas erradas | Na lista nova, cada embalagem diferente deve ser um produto diferente (ex.: "Leite (caixa 12)" e "Leite (unidade)") |
 
+## 2b. Despesas variáveis (18 nov 2026)
+
+- **Contas de valor variável** (água, energia por fatura): na despesa fixa marcam "o valor varia". Ao pagar, a app pergunta o valor real, que passa a ser a estimativa do mês seguinte.
+- **Outras despesas** (Despesas → Outras): recargas Credelec, farmácia, reparações, ofertas… Cada uma fica com a categoria, a data e quem lançou.
+- **Orçamento do mês** = despesas fixas + limite do rancho + reserva para imprevistos.
+- Precisa da migração `006_despesas_variaveis.sql` (já aplicada).
+
 ## 3. Limitações conhecidas (aceites no MVP)
 
 - **Precisa de rede**: sem dados móveis, a app não guarda preços.

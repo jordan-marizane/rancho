@@ -82,7 +82,7 @@ async function newCode() {
         <h2>Cópia de segurança (Excel)</h2>
         <p class="muted small" style="margin:0">Descarrega os dados num ficheiro que abre no Excel ou no Google Sheets. Façam isto de vez em quando para terem sempre uma cópia vossa.</p>
         <button class="btn" :disabled="exporting" @click="doExport(exportPurchases)">⬇️ Todas as compras e preços</button>
-        <button class="btn" :disabled="exporting" @click="doExport(exportExpenses)">⬇️ Despesas fixas de todos os meses</button>
+        <button class="btn" :disabled="exporting" @click="doExport(exportExpenses)">⬇️ Despesas de todos os meses</button>
       </div>
     </template>
   </section>

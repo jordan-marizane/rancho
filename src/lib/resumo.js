@@ -2,6 +2,7 @@ import { supabase } from './supabase.js'
 import { session } from './session.js'
 import { catalog, storeName, categoryName } from './catalog.js'
 import { memberName } from './session.js'
+import { byCategory, extraCat } from './despesas.js'
 
 function check({ data, error }) {
   if (error) throw error
@@ -17,17 +18,32 @@ export async function loadMonthExpenses(monthId) {
   return check(await supabase.from('month_expenses').select('*').eq('month_id', monthId).order('due_day', { nullsFirst: false }))
 }
 
+// Outras despesas de um mês (vazio se a base de dados ainda não tiver a migração 006)
+export async function loadMonthExtras(monthId) {
+  const { data, error } = await supabase.from('extra_expenses').select('*').eq('month_id', monthId).order('spent_on')
+  if (error) { if (/extra_expenses/i.test(error.message)) return []; throw error }
+  return data
+}
+
+// Orçamento total do mês = despesas fixas + limite do rancho + reserva para imprevistos.
+// Meses antigos sem limite do rancho usam o total que foi escrito à mão.
+export function monthBudget(month, fixedTotal) {
+  if (month.rancho_budget != null) return fixedTotal + Number(month.rancho_budget) + Number(month.reserve_budget ?? 0)
+  return month.total_budget != null ? Number(month.total_budget) : null
+}
+
 export const ranchoSpent = (monthId) =>
   catalog.purchases.filter((p) => p.month_id === monthId).reduce((s, p) => s + total(p), 0)
 
 // Resumo completo de um mês. "prev" é a linha do mês anterior (ou null).
-export function monthSummary(month, prev, expenses) {
+export function monthSummary(month, prev, expenses, extras = []) {
   const start = month.month
   const purchases = catalog.purchases.filter((p) => p.month_id === month.id)
   const spentRancho = purchases.reduce((s, p) => s + total(p), 0)
   const fixedTotal = expenses.reduce((s, e) => s + Number(e.amount), 0)
   const fixedPaid = expenses.filter((e) => e.paid_at).reduce((s, e) => s + Number(e.amount), 0)
-  const spentTotal = spentRancho + fixedPaid
+  const extrasTotal = extras.reduce((s, e) => s + Number(e.amount), 0)
+  const spentTotal = spentRancho + fixedPaid + extrasTotal
   const prevRancho = prev ? ranchoSpent(prev.id) : null
 
   // Comparação de preços: cada produto comprado este mês vs o último preço antes deste mês
@@ -56,7 +72,9 @@ export function monthSummary(month, prev, expenses) {
 
   return {
     spentRancho, fixedTotal, fixedPaid, spentTotal, prevRancho,
-    budgetTotal: month.total_budget != null ? Number(month.total_budget) : null,
+    budgetTotal: monthBudget(month, fixedTotal),
+    extrasTotal, extrasByCat: byCategory(extras),
+    reserve: month.reserve_budget != null ? Number(month.reserve_budget) : null,
     budgetRancho: month.rancho_budget != null ? Number(month.rancho_budget) : null,
     priceEffect, up, down, stores, unpaid: expenses.filter((e) => !e.paid_at),
     goal: month.savings_goal != null ? Number(month.savings_goal) : null,
@@ -130,5 +148,11 @@ export async function exportExpenses() {
         e.paid_by ? memberName(e.paid_by) : '', e.paid_at ? e.paid_at.slice(0, 10) : ''])
     }
   }
-  download(`rancho-despesas-fixas-${new Date().toISOString().slice(0, 10)}.csv`, rows)
+  rows.push([], ['Mês', 'Outras despesas', 'Valor (MT)', 'Data', 'Categoria', 'Lançada por'])
+  for (const m of months) {
+    for (const e of await loadMonthExtras(m.id)) {
+      rows.push([m.month.slice(0, 7), e.name, Number(e.amount), e.spent_on, extraCat(e.category).label, memberName(e.created_by)])
+    }
+  }
+  download(`rancho-despesas-${new Date().toISOString().slice(0, 10)}.csv`, rows)
 }
