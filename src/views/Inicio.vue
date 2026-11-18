@@ -5,6 +5,23 @@ import { despesas, loadDespesas, fixedSummary } from '../lib/despesas.js'
 import { session } from '../lib/session.js'
 import { mt, monthLabel } from '../lib/format.js'
 import { friendlyError } from '../lib/errors.js'
+import { loadMonths, ranchoSpent, suggestRanchoBudget } from '../lib/resumo.js'
+
+const prevMonth = ref(null)
+const dismissed = ref(false)
+const dismissKey = () => `rancho.sugestao.${rancho.month?.id}`
+async function loadPrev() {
+  const all = await loadMonths()
+  prevMonth.value = [...all].reverse().find((m) => m.month < rancho.monthStart) ?? null
+  try { dismissed.value = localStorage.getItem(dismissKey()) === '1' } catch { /* sem armazenamento */ }
+}
+const prevSpent = computed(() => (prevMonth.value ? ranchoSpent(prevMonth.value.id) : 0))
+const suggestion = computed(() => suggestRanchoBudget(prevSpent.value))
+// Mostrar no início do mês: ainda sem compras e o limite ainda não foi revisto
+const showSuggestion = computed(() => rancho.month && suggestion.value && !dismissed.value && r.value.spent === 0
+  && Number(rancho.month.rancho_budget) !== suggestion.value)
+function dismiss() { dismissed.value = true; try { localStorage.setItem(dismissKey(), '1') } catch { /* */ } }
+const acceptSuggestion = () => run(async () => { await setBudget(suggestion.value); dismiss() })
 
 const error = ref('')
 const busy = ref(false)
@@ -16,7 +33,7 @@ async function run(fn) {
   error.value = ''; busy.value = true
   try { await fn() } catch (e) { error.value = friendlyError(e) } finally { busy.value = false }
 }
-onMounted(() => run(async () => { await loadRancho(); await loadDespesas() }))
+onMounted(() => run(async () => { await loadRancho(); await loadDespesas(); await loadPrev() }))
 
 const r = computed(() => summary())
 const f = computed(() => fixedSummary())
@@ -37,7 +54,7 @@ const saveBudgets = () => run(async () => {
   await setBudget(num(ranchoInput.value))
   editing.value = false
 })
-const begin = () => run(async () => { await startMonth(); await loadDespesas() })
+const begin = () => run(async () => { await startMonth(); await loadDespesas(); await loadPrev() })
 </script>
 
 <template>
@@ -53,6 +70,18 @@ const begin = () => run(async () => { await startMonth(); await loadDespesas() }
     </div>
 
     <template v-else>
+      <!-- Sugestão de orçamento do rancho -->
+      <div v-if="showSuggestion" class="card stack suggest">
+        <h2>💡 Orçamento do rancho</h2>
+        <p style="margin:0">Em {{ monthLabel(prevMonth.month) }} gastaram <b>{{ mt(prevSpent) }}</b> no rancho.
+          Sugestão para {{ monthLabel(rancho.monthStart) }}: <b>{{ mt(suggestion) }}</b> (5% menos).</p>
+        <p v-if="rancho.month.rancho_budget" class="muted small" style="margin:0">Limite atual: {{ mt(rancho.month.rancho_budget) }}</p>
+        <div class="inline">
+          <button class="btn primary" :disabled="busy" @click="acceptSuggestion">Aceitar {{ mt(suggestion) }}</button>
+          <button class="btn" @click="dismiss(); openEdit()">Definir outro</button>
+        </div>
+      </div>
+
       <!-- Orçamento do mês -->
       <div class="card stack">
         <div class="title-row"><h2>Orçamento do mês</h2><button class="link" @click="openEdit">{{ budget ? 'mudar' : 'definir' }}</button></div>
