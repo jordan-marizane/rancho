@@ -2,12 +2,14 @@
 import { ref, computed, onMounted } from 'vue'
 import { catalog, loadCatalog, priceStats, storeName } from '../lib/catalog.js'
 import { importInitialList } from '../lib/importar.js'
+import { STORES, CATEGORIES } from '../data/lista-inicial.js'
 import { mt, monthLabel, norm } from '../lib/format.js'
 import { friendlyError } from '../lib/errors.js'
 import Trend from '../components/Trend.vue'
 import ProductSheet from '../components/ProductSheet.vue'
 
 const q = ref('')
+const importCount = CATEGORIES.reduce((n, c) => n + c.items.length, 0)
 const open = ref(null) // id do produto aberto, ou 'novo'
 const error = ref('')
 const importing = ref('')
@@ -53,7 +55,7 @@ async function doImport() {
 
     <div v-else-if="catalog.loaded && !catalog.products.length" class="card stack">
       <h2>Ainda não há produtos</h2>
-      <p class="muted">Podem importar a lista do vosso último rancho (107 produtos, 4 lojas e os preços que tinham nas notas) ou adicionar produtos um a um.</p>
+      <p class="muted">Podem importar a lista do rancho de outubro ({{ importCount }} produtos, {{ STORES.length }} lojas e os preços de outubro) ou adicionar produtos um a um.</p>
       <button class="btn primary" :disabled="!!importing" @click="doImport">Importar a lista do rancho</button>
       <p v-if="importing" class="muted small">{{ importing }}</p>
     </div>

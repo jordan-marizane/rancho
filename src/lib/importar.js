@@ -1,7 +1,7 @@
 import { supabase } from './supabase.js'
 import { session } from './session.js'
 import { loadCatalog } from './catalog.js'
-import { STORES, CATEGORIES, MONTHS } from '../data/lista-inicial.js'
+import { STORES, CATEGORIES, MONTH, PURCHASE_DATE } from '../data/lista-inicial.js'
 
 function check({ data, error }) {
   if (error) throw error
@@ -29,32 +29,30 @@ export async function importInitialList(onProgress = () => {}) {
   const catId = (name) => cats.find((c) => c.name === name).id
 
   onProgress('Produtos…')
-  const rows = CATEGORIES.flatMap((c) => c.items.map(([name]) => ({ household_id: hid, name, category_id: catId(c.name) })))
+  const rows = CATEGORIES.flatMap((c) => c.items.map(([name, , o = {}]) => ({
+    household_id: hid, name, category_id: catId(c.name), unit: o.unit ?? 'un', default_qty: o.qty ?? 1,
+  })))
   const products = check(await supabase.from('products').insert(rows).select('id, name'))
   const prodId = (name) => products.find((p) => p.name === name).id
 
-  onProgress('Meses e lista do rancho…')
-  const mOld = check(await supabase.rpc('start_month', { hid, p_month: MONTHS.anterior }))
-  check(await supabase.from('list_items').insert(CATEGORIES.flatMap((c) => c.items.map(([name, , , o = {}]) => ({
-    household_id: hid, month_id: mOld, product_id: prodId(name),
-    planned_qty: o.qty ?? 1, store_id: storeId(o.store ?? c.store),
+  onProgress('Mês de outubro e lista do rancho…')
+  const mid = check(await supabase.rpc('start_month', { hid, p_month: MONTH }))
+  check(await supabase.from('list_items').insert(CATEGORIES.flatMap((c) => c.items.map(([name, price, o = {}]) => ({
+    household_id: hid, month_id: mid, product_id: prodId(name),
+    planned_qty: o.qty ?? 1, store_id: storeId(o.store ?? c.store), done: price != null,
   })))))
 
   onProgress('Preços…')
   const purchases = []
   for (const c of CATEGORIES) {
-    for (const [name, prev, last, o = {}] of c.items) {
-      const base = { household_id: hid, product_id: prodId(name), quantity: o.qty ?? 1 }
-      const store = storeId(o.store ?? c.store)
-      if (prev != null) purchases.push({ ...base, store_id: store, price: prev, purchased_on: MONTHS.anterior, month_id: mOld })
-      if (last != null) purchases.push({ ...base, store_id: store, price: last, purchased_on: MONTHS.recente, _recent: true })
+    for (const [name, price, o = {}] of c.items) {
+      const base = { household_id: hid, product_id: prodId(name), quantity: o.qty ?? 1, purchased_on: PURCHASE_DATE }
+      if (price != null) purchases.push({ ...base, store_id: storeId(o.store ?? c.store), price, month_id: mid })
       // Preço visto noutra loja: entra no histórico, mas não conta como gasto do mês
-      if (o.alt) purchases.push({ ...base, store_id: storeId(o.alt[0]), price: o.alt[1], purchased_on: MONTHS.recente })
+      if (o.alt) purchases.push({ ...base, store_id: storeId(o.alt[0]), price: o.alt[1] })
     }
   }
-  // O mês recente é criado a partir do anterior (copia a lista)
-  const mNew = check(await supabase.rpc('start_month', { hid, p_month: MONTHS.recente }))
-  check(await supabase.from('purchases').insert(purchases.map(({ _recent, ...p }) => (_recent ? { ...p, month_id: mNew } : p))))
+  check(await supabase.from('purchases').insert(purchases))
 
   await loadCatalog(true)
   return { products: products.length, purchases: purchases.length }
