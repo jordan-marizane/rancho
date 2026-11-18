@@ -118,7 +118,7 @@ export const CATEGORIES = [
       ['Natas', 200],
       ['Leite fresco', 90, { qty: 4 }],
       ['Iogurtinho 125g', 33, { qty: 6 }],
-      ['Suminhos 250ml', 210, { qty: 12 }],
+      ['Suminhos 250ml', 35, { qty: 12 }],
       ['Aqua Plus', 130, { qty: 5 }],
       ['Fusion', 80, { qty: 2 }],
     ],
