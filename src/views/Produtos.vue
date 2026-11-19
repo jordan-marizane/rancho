@@ -2,6 +2,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { catalog, loadCatalog, priceStats, storeName } from '../lib/catalog.js'
 import { importInitialList } from '../lib/importar.js'
+import { rancho, loadRancho } from '../lib/rancho.js'
 import { STORES, CATEGORIES } from '../data/lista-inicial.js'
 import { mt, monthLabel, norm } from '../lib/format.js'
 import { friendlyError } from '../lib/errors.js'
@@ -27,7 +28,8 @@ const open = ref(null) // id do produto aberto, ou 'novo'
 const error = ref('')
 const importing = ref('')
 
-onMounted(() => loadCatalog().catch((e) => (error.value = friendlyError(e))))
+// A lista do rancho do mês também é carregada, para saber o que já está na lista
+onMounted(() => loadCatalog().then(() => (rancho.loaded ? null : loadRancho())).catch((e) => (error.value = friendlyError(e))))
 
 const rows = computed(() => {
   const term = norm(q.value)

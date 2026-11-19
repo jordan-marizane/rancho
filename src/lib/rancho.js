@@ -94,10 +94,10 @@ export async function setTotalBudget(value) {
   rancho.month.total_budget = v
 }
 
-export async function addToList(productId, storeId = null, qty = 1) {
+export async function addToList(productId, storeId = null, qty = 1, plannedPrice = null) {
   const row = check(await supabase.from('list_items').insert({
     household_id: session.household.id, month_id: rancho.month.id, product_id: productId,
-    planned_qty: qty, store_id: storeId,
+    planned_qty: qty, store_id: storeId, ...(plannedPrice != null ? { planned_price: plannedPrice } : {}),
   }).select().single())
   rancho.items.push(row)
   return row
@@ -141,9 +141,29 @@ const total = (p) => Number(p.price) * Number(p.quantity)
 export const boughtThisMonth = (productId) =>
   catalog.purchases.filter((p) => p.month_id === rancho.month?.id && p.product_id === productId)
 
-// Último preço ANTES deste mês (para comparar com "o mês passado")
-export const lastBefore = (productId, monthStart = rancho.monthStart) =>
-  catalog.purchases.find((p) => p.product_id === productId && p.purchased_on < monthStart) ?? null
+// Preço de referência: a compra mais recente ANTES deste mês, ou um preço registado à parte
+// (em Produtos, sem ser compra do rancho) mesmo que seja deste mês
+// No mesmo dia, uma compra real ganha a um preço visto noutra loja.
+export function lastBefore(productId, monthStart = rancho.monthStart) {
+  const c = catalog.purchases.filter((p) => p.product_id === productId && (p.purchased_on < monthStart || p.month_id == null))
+  if (!c.length) return null
+  return c.find((p) => p.purchased_on === c[0].purchased_on && p.month_id != null) ?? c[0]
+}
+
+// Preço esperado de um produto da lista: o previsto (escrito em casa) ou o de referência
+export function expectedPrice(item) {
+  if (item.planned_price != null) return Number(item.planned_price)
+  const ref = lastBefore(item.product_id)
+  return ref ? Number(ref.price) : null
+}
+
+// Guarda a previsão (quantidade e preço) sem marcar como comprado.
+// Se o preço for igual ao de referência, não guarda previsão: continua a seguir a referência.
+export async function savePlan(item, { qty, price }) {
+  const ref = lastBefore(item.product_id)
+  const planned = price == null || (ref && Math.abs(Number(ref.price) - price) < 0.005) ? null : price
+  await updateItem(item.id, { planned_qty: qty, planned_price: planned })
+}
 
 export function summary() {
   const monthPurchases = catalog.purchases.filter((p) => p.month_id === rancho.month?.id)
@@ -154,8 +174,8 @@ export function summary() {
   for (const it of rancho.items) {
     const bought = boughtThisMonth(it.product_id)
     if (bought.length) { estimate += bought.reduce((s, p) => s + total(p), 0); continue }
-    const ref = lastBefore(it.product_id)
-    if (ref) estimate += Number(ref.price) * Number(it.planned_qty)
+    const price = expectedPrice(it)
+    if (price != null) estimate += price * Number(it.planned_qty)
     else missingPrice++
   }
   const done = rancho.items.filter((i) => i.done || boughtThisMonth(i.product_id).length).length

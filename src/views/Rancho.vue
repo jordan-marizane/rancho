@@ -1,7 +1,7 @@
 <script setup>
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import { catalog, storeName } from '../lib/catalog.js'
-import { rancho, loadRancho, refreshAll, startMonth, setBudget, summary, boughtThisMonth, lastBefore, updateItem } from '../lib/rancho.js'
+import { rancho, loadRancho, refreshAll, startMonth, setBudget, summary, boughtThisMonth, lastBefore, expectedPrice, updateItem } from '../lib/rancho.js'
 import { mt, monthLabel, norm } from '../lib/format.js'
 import { friendlyError } from '../lib/errors.js'
 import QuickPrice from '../components/QuickPrice.vue'
@@ -45,7 +45,10 @@ const rows = computed(() => {
       const ref0 = lastBefore(it.product_id)
       const paid = bought[0] ?? null
       const diff = paid && ref0 ? Number(paid.price) - Number(ref0.price) : null
-      return { it, p, bought, paid, ref0, diff, isDone: it.done || bought.length > 0 }
+      const exp = expectedPrice(it)
+      // Antes de comprar: diferença entre o previsto e o último preço
+      const planDiff = !paid && it.planned_price != null && ref0 ? Number(it.planned_price) - Number(ref0.price) : null
+      return { it, p, bought, paid, ref0, diff, exp, planDiff, isDone: it.done || bought.length > 0 }
     })
     .filter(Boolean)
     .filter((r) => !t || norm(r.p.name).includes(t))
@@ -63,7 +66,7 @@ const groups = computed(() => {
   return order.map((g) => {
     const items = rows.value.filter((r) => key(r) === g.id)
     const subtotal = items.reduce((s, r) => s + (r.paid ? Number(r.paid.price) * Number(r.paid.quantity)
-      : r.ref0 ? Number(r.ref0.price) * Number(r.it.planned_qty) : 0), 0)
+      : r.exp != null ? r.exp * Number(r.it.planned_qty) : 0), 0)
     return { ...g, items, subtotal }
   }).filter((g) => g.items.length)
 })
@@ -156,7 +159,6 @@ const toggleDone = (r) => run(() => updateItem(r.it.id, { done: !r.it.done }))
       </div>
       <div class="links">
         <button class="link" @click="toggleHide">{{ hideDone ? 'Mostrar os do cesto' : 'Esconder os do cesto' }}</button>
-        <button class="link" @click="adding = true">+ Adicionar produto</button>
         <button v-if="groups.length > 1 && !q.trim()" class="link" @click="toggleAll">{{ allOpen ? 'Recolher todas' : 'Abrir todas' }}</button>
       </div>
 
@@ -178,15 +180,16 @@ const toggleDone = (r) => run(() => updateItem(r.it.id, { done: !r.it.done }))
               <span class="pname">{{ r.p.name }}<span v-if="Number(r.it.planned_qty) !== 1" class="muted"> × {{ Number(r.it.planned_qty) }}</span></span>
               <span class="pprice">
                 <template v-if="r.paid">{{ mt(r.paid.price) }}</template>
-                <template v-else>{{ mt(r.ref0?.price) }}</template>
+                <template v-else>{{ mt(r.exp) }}</template>
               </span>
               <span class="pmeta muted small">
                 <template v-if="r.paid">{{ storeName(r.paid.store_id) }}<template v-if="r.ref0"> · antes {{ mt(r.ref0.price) }}</template></template>
+                <template v-else-if="r.it.planned_price != null">📝 previsto<template v-if="r.ref0"> · antes {{ mt(r.ref0.price) }}</template></template>
                 <template v-else-if="r.ref0">{{ storeName(r.ref0.store_id) }} · {{ monthLabel(r.ref0.purchased_on) }}</template>
                 <template v-else>Sem preço anterior</template>
               </span>
-              <span v-if="r.diff != null" class="trend" :class="r.diff > 0.004 ? 'up' : r.diff < -0.004 ? 'down' : 'same'">
-                {{ r.diff > 0.004 ? '▲ ' + mt(r.diff) : r.diff < -0.004 ? '▼ ' + mt(-r.diff) : '= igual' }}
+              <span v-if="(r.diff ?? r.planDiff) != null" class="trend" :class="(r.diff ?? r.planDiff) > 0.004 ? 'up' : (r.diff ?? r.planDiff) < -0.004 ? 'down' : 'same'">
+                {{ (r.diff ?? r.planDiff) > 0.004 ? '▲ ' + mt(r.diff ?? r.planDiff) : (r.diff ?? r.planDiff) < -0.004 ? '▼ ' + mt(-(r.diff ?? r.planDiff)) : '= igual' }}
               </span>
               <span v-else class="trend none">{{ r.paid ? 'novo' : '' }}</span>
             </button>
@@ -196,6 +199,8 @@ const toggleDone = (r) => run(() => updateItem(r.it.id, { done: !r.it.done }))
     </template>
 
     <QuickPrice v-if="openItem" :key="openItem.id" :item="openItem" :store-filter="store" @close="openItem = null" />
-    <AddToList v-if="adding" :store-filter="store" @close="adding = false" @added="adding = false" />
+    <AddToList v-if="adding" :store-filter="store" @close="adding = false" @added="(it) => { adding = false; if (it) openItem = it }" />
+    <div v-if="rancho.month" style="height:64px" aria-hidden="true"></div>
+    <button v-if="rancho.month && !adding && !openItem" class="fab" aria-label="Adicionar produto à lista" @click="adding = true">＋</button>
   </section>
 </template>
