@@ -21,6 +21,7 @@ const error = ref('')
 const busy = ref(false)
 const adding = ref(false)
 const editing = ref(null)
+const choosing = ref(false) // escolher entre despesa fixa e outra despesa
 const paying = ref(null)
 const payAmount = ref('')
 const form = reactive({ name: '', amount: '', due_day: '', variable: false })
@@ -97,7 +98,7 @@ const pct = (a, b) => (b ? Math.min(100, Math.round((a / b) * 100)) : 0)
   <section class="stack">
     <div class="title-row">
       <h1>Despesas <span class="muted month-name">{{ rancho.monthStart ? monthLabel(rancho.monthStart) : '' }}</span></h1>
-      <button v-if="rancho.month" class="btn primary small-btn" @click="tab === 'outras' ? openExtra() : (adding = true)">+ Despesa</button>
+      <button v-if="rancho.month" class="btn primary small-btn" @click="choosing = true">+ Despesa</button>
     </div>
     <p v-if="error" class="msg error">{{ error }}</p>
     <p v-if="!rancho.loaded" class="muted">A carregar…</p>
@@ -190,6 +191,17 @@ const pct = (a, b) => (b ? Math.min(100, Math.round((a / b) * 100)) : 0)
         </ul>
       </template>
     </template>
+
+    <Sheet v-if="choosing" title="Que despesa é?" @close="choosing = false">
+      <div class="stack">
+        <button class="btn choice" @click="choosing = false; setTab('outras'); openExtra()">
+          <b>📌 Outra despesa (só este mês)</b><span class="muted small">Recarga Credelec, farmácia, reparação, prenda…</span>
+        </button>
+        <button class="btn choice" @click="choosing = false; setTab('fixas'); adding = true">
+          <b>📅 Despesa fixa (todos os meses)</b><span class="muted small">Renda, escola, água, energia por fatura…</span>
+        </button>
+      </div>
+    </Sheet>
 
     <Sheet v-if="adding" title="Nova despesa fixa" @close="adding = false">
       <form class="stack" @submit.prevent="add">

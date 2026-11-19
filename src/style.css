@@ -296,3 +296,4 @@ select.mini { width: auto; min-height: 40px; padding: 4px 8px; }
   position: sticky; top: 64px; z-index: 9; width: 100%; min-height: 44px; border: 0; cursor: pointer;
   background: var(--brand); color: #fff; font: inherit; font-weight: 600; padding: 10px 16px;
 }
+.btn.choice { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; text-align: left; padding: 14px 16px; height: auto; }
