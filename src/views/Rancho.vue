@@ -48,7 +48,11 @@ const rows = computed(() => {
       const exp = expectedPrice(it)
       // Antes de comprar: diferença entre o previsto e o último preço
       const planDiff = !paid && it.planned_price != null && ref0 ? Number(it.planned_price) - Number(ref0.price) : null
-      return { it, p, bought, paid, ref0, diff, exp, planDiff, isDone: it.done || bought.length > 0 }
+      // Quantidade, preço unitário e subtotal (o que foi pago, ou o previsto)
+      const qty = paid ? bought.reduce((n, b) => n + Number(b.quantity), 0) : Number(it.planned_qty)
+      const unit = paid ? Number(paid.price) : exp
+      const sub = paid ? bought.reduce((n, b) => n + Number(b.price) * Number(b.quantity), 0) : exp != null ? exp * qty : null
+      return { it, p, bought, paid, ref0, diff, exp, planDiff, qty, unit, sub, isDone: it.done || bought.length > 0 }
     })
     .filter(Boolean)
     .filter((r) => !t || norm(r.p.name).includes(t))
@@ -65,8 +69,7 @@ const groups = computed(() => {
     : [...catalog.categories.map((c) => ({ id: c.id, name: c.name })), { id: '', name: 'Sem categoria' }]
   return order.map((g) => {
     const items = rows.value.filter((r) => key(r) === g.id)
-    const subtotal = items.reduce((s, r) => s + (r.paid ? Number(r.paid.price) * Number(r.paid.quantity)
-      : r.exp != null ? r.exp * Number(r.it.planned_qty) : 0), 0)
+    const subtotal = items.reduce((s, r) => s + (r.sub ?? 0), 0)
     return { ...g, items, subtotal }
   }).filter((g) => g.items.length)
 })
@@ -177,11 +180,8 @@ const toggleDone = (r) => run(() => updateItem(r.it.id, { done: !r.it.done }))
             <button class="check" :aria-label="r.isDone ? 'Tirar do cesto' : 'Pôr no cesto sem preço'"
                     :disabled="r.bought.length > 0" @click="toggleDone(r)">{{ r.isDone ? '✓' : '' }}</button>
             <button class="prow" @click="openItem = r.it">
-              <span class="pname">{{ r.p.name }}<span v-if="Number(r.it.planned_qty) !== 1" class="muted"> × {{ Number(r.it.planned_qty) }}</span></span>
-              <span class="pprice">
-                <template v-if="r.paid">{{ mt(r.paid.price) }}</template>
-                <template v-else>{{ mt(r.exp) }}</template>
-              </span>
+              <span class="pname">{{ r.p.name }}<span v-if="r.qty !== 1" class="muted small"> · {{ r.qty }} × {{ mt(r.unit) }}</span></span>
+              <span class="pprice">{{ mt(r.sub) }}</span>
               <span class="pmeta muted small">
                 <template v-if="r.paid">{{ storeName(r.paid.store_id) }}<template v-if="r.ref0"> · antes {{ mt(r.ref0.price) }}</template></template>
                 <template v-else-if="r.it.planned_price != null">📝 previsto<template v-if="r.ref0"> · antes {{ mt(r.ref0.price) }}</template></template>
