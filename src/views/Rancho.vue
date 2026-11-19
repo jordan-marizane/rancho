@@ -1,7 +1,7 @@
 <script setup>
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import { catalog, storeName } from '../lib/catalog.js'
-import { rancho, loadRancho, refreshAll, startMonth, setBudget, summary, boughtThisMonth, lastBefore, expectedPrice, updateItem } from '../lib/rancho.js'
+import { rancho, loadRancho, refreshAll, startMonth, setBudget, summary, boughtThisMonth, lastBefore, expectedPrice, updateItem, activeItems } from '../lib/rancho.js'
 import { mt, monthLabel, norm } from '../lib/format.js'
 import { friendlyError } from '../lib/errors.js'
 import QuickPrice from '../components/QuickPrice.vue'
@@ -76,7 +76,7 @@ const groups = computed(() => {
 
 const storeCounts = computed(() => {
   const m = {}
-  for (const it of rancho.items) if (!it.done && !boughtThisMonth(it.product_id).length) m[it.store_id ?? ''] = (m[it.store_id ?? ''] ?? 0) + 1
+  for (const it of activeItems()) if (!it.done && !boughtThisMonth(it.product_id).length) m[it.store_id ?? ''] = (m[it.store_id ?? ''] ?? 0) + 1
   return m
 })
 

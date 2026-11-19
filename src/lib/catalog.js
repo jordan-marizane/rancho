@@ -93,8 +93,20 @@ export async function saveProduct(product) {
     unit: product.unit || 'un',
     pack_size: product.pack_size || 1,
   }
-  const res = product.id
-    ? await supabase.from('products').update(fields).eq('id', product.id).select().single()
+  let id = product.id
+  if (!id) {
+    // "Remover produto" só esconde o produto (para guardar o histórico de preços).
+    // Criar outra vez um produto com o mesmo nome recupera esse produto e o seu histórico.
+    const key = fields.name.toLowerCase()
+    const { data: hidden } = await supabase.from('products').select('id, name').eq('household_id', hid()).eq('archived', true)
+    id = (hidden ?? []).find((p) => p.name.trim().toLowerCase() === key)?.id
+    if (id) {
+      fields.archived = false
+      if (!product.category_id) delete fields.category_id // mantém a categoria que tinha
+    }
+  }
+  const res = id
+    ? await supabase.from('products').update(fields).eq('id', id).select().single()
     : await supabase.from('products').insert({ household_id: hid(), ...fields }).select().single()
   const saved = check(res)
   await loadCatalog(true)

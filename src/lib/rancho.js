@@ -95,11 +95,12 @@ export async function setTotalBudget(value) {
 }
 
 export async function addToList(productId, storeId = null, qty = 1, plannedPrice = null) {
-  const row = check(await supabase.from('list_items').insert({
+  // upsert: um produto removido e recuperado pode ainda ter a linha deste mês
+  const row = check(await supabase.from('list_items').upsert({
     household_id: session.household.id, month_id: rancho.month.id, product_id: productId,
     planned_qty: qty, store_id: storeId, ...(plannedPrice != null ? { planned_price: plannedPrice } : {}),
-  }).select().single())
-  rancho.items.push(row)
+  }, { onConflict: 'month_id,product_id' }).select().single())
+  rancho.items = [...rancho.items.filter((i) => i.id !== row.id), row]
   return row
 }
 
@@ -165,19 +166,26 @@ export async function savePlan(item, { qty, price }) {
   await updateItem(item.id, { planned_qty: qty, planned_price: planned })
 }
 
+// Produtos da lista que não foram removidos (um produto removido continua na lista, mas escondido)
+export const activeItems = () => {
+  const ids = new Set(catalog.products.map((p) => p.id))
+  return rancho.items.filter((i) => ids.has(i.product_id))
+}
+
 export function summary() {
+  const items = activeItems()
   const monthPurchases = catalog.purchases.filter((p) => p.month_id === rancho.month?.id)
   const spent = monthPurchases.reduce((s, p) => s + total(p), 0)
   const spentToday = monthPurchases.filter((p) => p.purchased_on === today()).reduce((s, p) => s + total(p), 0)
   let estimate = 0
   let missingPrice = 0
-  for (const it of rancho.items) {
+  for (const it of items) {
     const bought = boughtThisMonth(it.product_id)
     if (bought.length) { estimate += bought.reduce((s, p) => s + total(p), 0); continue }
     const price = expectedPrice(it)
     if (price != null) estimate += price * Number(it.planned_qty)
     else missingPrice++
   }
-  const done = rancho.items.filter((i) => i.done || boughtThisMonth(i.product_id).length).length
-  return { spent, spentToday, estimate, missingPrice, done, count: rancho.items.length }
+  const done = items.filter((i) => i.done || boughtThisMonth(i.product_id).length).length
+  return { spent, spentToday, estimate, missingPrice, done, count: items.length }
 }

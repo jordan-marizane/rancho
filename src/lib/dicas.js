@@ -1,12 +1,12 @@
 import { catalog, priceStats, storeName } from './catalog.js'
-import { rancho, boughtThisMonth, lastBefore } from './rancho.js'
+import { rancho, boughtThisMonth, lastBefore, activeItems } from './rancho.js'
 import { mt } from './format.js'
 
 // Sugestões de poupança a partir dos vossos dados (não conselhos genéricos).
 // Só olha para os produtos da lista deste mês que ainda não foram comprados.
 export function savingTips(prevMonthId) {
   const tips = []
-  for (const it of rancho.items) {
+  for (const it of activeItems()) {
     if (it.done || boughtThisMonth(it.product_id).length) continue
     const product = catalog.products.find((p) => p.id === it.product_id)
     if (!product) continue
