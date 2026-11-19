@@ -290,3 +290,9 @@ select.mini { width: auto; min-height: 40px; padding: 4px 8px; }
 }
 @media (min-width: 900px) { .fab { bottom: 24px; right: max(24px, calc(50vw - 380px)); } }
 .pick-row { display: flex; justify-content: space-between; gap: 12px; }
+
+/* Aviso de nova versão */
+.update-bar {
+  position: sticky; top: 64px; z-index: 9; width: 100%; min-height: 44px; border: 0; cursor: pointer;
+  background: var(--brand); color: #fff; font: inherit; font-weight: 600; padding: 10px 16px;
+}

@@ -4,11 +4,12 @@ import { pages } from './router.js'
 import { isConfigured } from './lib/supabase.js'
 import { session, initSession } from './lib/session.js'
 import { startRealtime } from './lib/realtime.js'
+import { appUpdate, startUpdateCheck, reloadApp } from './lib/update.js'
 import Entrar from './views/Entrar.vue'
 import Familia from './views/Familia.vue'
 import NovaPalavraPasse from './views/NovaPalavraPasse.vue'
 
-onMounted(() => { initSession(); startRealtime() })
+onMounted(() => { initSession(); startRealtime(); startUpdateCheck() })
 </script>
 
 <template>
@@ -17,6 +18,8 @@ onMounted(() => { initSession(); startRealtime() })
       <span class="brand">🧺 Rancho</span>
       <span v-if="session.member" class="who">{{ session.member.display_name }}</span>
     </header>
+
+    <button v-if="appUpdate.available" class="update-bar" @click="reloadApp">✨ Nova versão da app. Toca para atualizar</button>
 
     <p v-if="!isConfigured" class="notice">
       Versão de teste: a ligação à base de dados ainda não está configurada.
