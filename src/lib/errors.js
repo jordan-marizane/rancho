@@ -10,6 +10,7 @@ const map = [
   [/duplicate key|unique/i, 'Já existe um registo com esse nome.'],
   [/savings_goal/i, 'Falta atualizar a base de dados: corram o ficheiro 003_meta_poupanca.sql no Supabase.'],
   [/extra_expenses|reserve_budget|column .*variable/i, 'Falta atualizar a base de dados: corram o ficheiro 006_despesas_variaveis.sql no Supabase.'],
+  [/planned_price/i, 'Falta atualizar a base de dados: corram o ficheiro 007_previsto_e_tempo_real.sql no Supabase.'],
 ]
 
 export function friendlyError(err) {

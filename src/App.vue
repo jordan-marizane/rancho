@@ -3,11 +3,12 @@ import { onMounted } from 'vue'
 import { pages } from './router.js'
 import { isConfigured } from './lib/supabase.js'
 import { session, initSession } from './lib/session.js'
+import { startRealtime } from './lib/realtime.js'
 import Entrar from './views/Entrar.vue'
 import Familia from './views/Familia.vue'
 import NovaPalavraPasse from './views/NovaPalavraPasse.vue'
 
-onMounted(initSession)
+onMounted(() => { initSession(); startRealtime() })
 </script>
 
 <template>

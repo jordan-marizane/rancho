@@ -4,7 +4,8 @@ import Sheet from './Sheet.vue'
 import Trend from './Trend.vue'
 import { catalog, priceStats, storeName, saveProduct, archiveProduct, addPurchase, deletePurchase, addStore } from '../lib/catalog.js'
 import { memberName } from '../lib/session.js'
-import { mt, dayLabel, today } from '../lib/format.js'
+import { rancho, addToList } from '../lib/rancho.js'
+import { mt, dayLabel, today, monthLabel } from '../lib/format.js'
 import { friendlyError } from '../lib/errors.js'
 
 const props = defineProps({ productId: { type: String, default: null }, presetName: { type: String, default: '' } })
@@ -22,6 +23,12 @@ const form = reactive({
 const price = reactive({ store_id: stats.value?.last?.store_id ?? '', price: '', quantity: 1, purchased_on: today() })
 const error = ref('')
 const busy = ref(false)
+// Lista do rancho do mês: um produto novo pode entrar logo, com quantidade e preço previsto
+const canList = computed(() => !!rancho.month)
+const inList = computed(() => !!product.value && rancho.items.some((i) => i.product_id === product.value.id))
+const plan = reactive({ add: !!rancho.month, qty: 1, price: '' })
+const num = (v) => Number(String(v).replace(/\s/g, '').replace(',', '.'))
+const addNow = () => run(async () => { await addToList(product.value.id) })
 const confirmArchive = ref(false)
 const newStore = ref(null)
 const saveStore = () => run(async () => { const s = await addStore(newStore.value); price.store_id = s.id; newStore.value = null })
@@ -38,7 +45,11 @@ async function run(fn) {
   try { await fn() } catch (e) { error.value = friendlyError(e) } finally { busy.value = false }
 }
 const save = () => run(async () => {
+  const isNew = !form.id
   const saved = await saveProduct(form)
+  if (isNew && canList.value && plan.add) {
+    await addToList(saved.id, null, Number(plan.qty) || 1, String(plan.price).trim() === '' ? null : num(plan.price))
+  }
   editing.value = false
   emit('saved', saved)
 })
@@ -64,6 +75,9 @@ const archive = () => run(async () => { await archiveProduct(product.value.id); 
       <p v-if="stats.cheapest && stats.cheapest.id !== stats.last?.id" class="msg ok">
         Mais barato nos últimos 6 meses: <b>{{ mt(stats.cheapest.price) }}</b> em {{ storeName(stats.cheapest.store_id) }}
       </p>
+
+      <p v-if="canList && inList" class="small muted" style="margin:0">✓ Está na lista do rancho de {{ monthLabel(rancho.monthStart) }}</p>
+      <button v-else-if="canList" class="btn" :disabled="busy" @click="addNow">+ Adicionar ao rancho de {{ monthLabel(rancho.monthStart) }}</button>
 
       <form class="card stack" @submit.prevent="addPrice">
         <h3>Registar preço</h3>
@@ -136,6 +150,13 @@ const archive = () => run(async () => { await archiveProduct(product.value.id); 
           <option value="monte">Monte</option>
         </select>
       </label>
+      <template v-if="!product && canList">
+        <label class="checkline"><input v-model="plan.add" type="checkbox" /> Adicionar ao rancho de {{ monthLabel(rancho.monthStart) }}</label>
+        <div v-if="plan.add" class="row2">
+          <label>Quantidade <input v-model="plan.qty" type="number" min="0.001" step="any" inputmode="decimal" /></label>
+          <label>Preço previsto (MT) <input v-model="plan.price" inputmode="decimal" placeholder="Opcional" /></label>
+        </div>
+      </template>
       <p v-if="error" class="msg error">{{ error }}</p>
       <button class="btn primary" :disabled="busy">Guardar</button>
       <button v-if="product" type="button" class="btn" @click="editing = false">Cancelar</button>

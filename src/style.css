@@ -281,3 +281,12 @@ select.mini { width: auto; min-height: 40px; padding: 4px 8px; }
 }
 .group-toggle[aria-expanded="true"] { border-color: transparent; background: transparent; padding-left: 4px; }
 .caret { width: 1em; color: var(--muted); }
+
+/* Botão flutuante (Rancho) */
+.fab {
+  position: fixed; z-index: 15; right: 16px; bottom: calc(var(--nav-h) + env(safe-area-inset-bottom) + 16px);
+  width: 56px; height: 56px; border-radius: 50%; border: 0; background: var(--brand); color: #fff;
+  font-size: 1.8rem; line-height: 1; cursor: pointer; box-shadow: 0 4px 14px rgb(0 0 0 / .25);
+}
+@media (min-width: 900px) { .fab { bottom: 24px; right: max(24px, calc(50vw - 380px)); } }
+.pick-row { display: flex; justify-content: space-between; gap: 12px; }
