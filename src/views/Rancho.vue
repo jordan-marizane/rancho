@@ -71,7 +71,8 @@ const groups = computed(() => {
   return order.map((g) => {
     const items = rows.value.filter((r) => key(r) === g.id)
     const subtotal = items.reduce((s, r) => s + (r.sub ?? 0), 0)
-    return { ...g, items, subtotal }
+    const boughtSum = items.reduce((s, r) => s + (r.paid ? r.sub : 0), 0)
+    return { ...g, items, subtotal, boughtSum }
   }).filter((g) => g.items.length)
 })
 
@@ -175,7 +176,10 @@ const toggleDone = (r) => run(() => updateItem(r.it.id, { done: !r.it.done }))
           <button class="group-toggle" :aria-expanded="isOpen(g)" @click="toggleGroup(g)">
             <span class="caret" aria-hidden="true">{{ isOpen(g) ? '▾' : '▸' }}</span>
             <span class="grow">{{ g.name }}</span>
-            <span class="muted small">{{ g.items.filter((r) => r.isDone).length }}/{{ g.items.length }} · {{ mt(g.subtotal) }}</span>
+            <span class="group-sums small">
+              <span class="muted">{{ g.items.filter((r) => r.isDone).length }}/{{ g.items.length }} · {{ mt(g.subtotal) }}</span>
+              <span v-if="g.boughtSum" class="down-text">✓ comprado {{ mt(g.boughtSum) }}</span>
+            </span>
           </button>
         </h2>
         <ul v-if="isOpen(g)" class="plist">

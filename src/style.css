@@ -306,3 +306,4 @@ select.mini { width: auto; min-height: 40px; padding: 4px 8px; }
 }
 @media (min-width: 900px) { .sticky-tools { position: static; } }
 .seg.units { grid-template-columns: 1fr 1fr 1fr; }
+.group-sums { display: flex; flex-direction: column; align-items: flex-end; line-height: 1.25; font-weight: 500; }
