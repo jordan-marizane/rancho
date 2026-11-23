@@ -11,6 +11,7 @@ const map = [
   [/savings_goal/i, 'Falta atualizar a base de dados: corram o ficheiro 003_meta_poupanca.sql no Supabase.'],
   [/extra_expenses|reserve_budget|column .*variable/i, 'Falta atualizar a base de dados: corram o ficheiro 006_despesas_variaveis.sql no Supabase.'],
   [/planned_price/i, 'Falta atualizar a base de dados: corram o ficheiro 007_previsto_e_tempo_real.sql no Supabase.'],
+  [/'unit' column|column "unit"|column purchases\.unit/i, 'Falta atualizar a base de dados: corram o ficheiro 008_precos_com_mais_casas.sql no Supabase.'],
   [/numeric field overflow/i, 'Valor demasiado grande.'],
 ]
 

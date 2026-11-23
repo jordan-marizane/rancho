@@ -1,7 +1,7 @@
 import { reactive } from 'vue'
 import { supabase } from './supabase.js'
 import { session } from './session.js'
-import { catalog, loadCatalog } from './catalog.js'
+import { catalog, loadCatalog, sameUnit, insertPurchase } from './catalog.js'
 import { today } from './format.js'
 
 // Estado do rancho do mês atual
@@ -118,10 +118,11 @@ export async function removeFromList(id) {
 // Regista o preço e marca o produto como comprado
 export async function buy(item, { price, quantity, store_id, purchased_on }) {
   const product = catalog.products.find((p) => p.id === item.product_id)
-  const row = check(await supabase.from('purchases').insert({
+  const row = await insertPurchase({
     household_id: session.household.id, product_id: item.product_id, month_id: rancho.month.id,
     store_id: store_id || null, price, quantity, pack_size: product?.pack_size || 1, purchased_on,
-  }).select().single())
+    unit: product?.unit ?? 'un',
+  })
   catalog.purchases.unshift(row)
   catalog.purchases.sort((a, b) => (b.purchased_on.localeCompare(a.purchased_on)) || b.created_at.localeCompare(a.created_at))
   await updateItem(item.id, { done: true, store_id: store_id || item.store_id })
@@ -146,7 +147,7 @@ export const boughtThisMonth = (productId) =>
 // (em Produtos, sem ser compra do rancho) mesmo que seja deste mês
 // No mesmo dia, uma compra real ganha a um preço visto noutra loja.
 export function lastBefore(productId, monthStart = rancho.monthStart) {
-  const c = catalog.purchases.filter((p) => p.product_id === productId && (p.purchased_on < monthStart || p.month_id == null))
+  const c = catalog.purchases.filter((p) => p.product_id === productId && (p.purchased_on < monthStart || p.month_id == null) && sameUnit(p))
   if (!c.length) return null
   return c.find((p) => p.purchased_on === c[0].purchased_on && p.month_id != null) ?? c[0]
 }

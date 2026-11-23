@@ -1,6 +1,6 @@
 import { supabase } from './supabase.js'
 import { session } from './session.js'
-import { catalog, storeName, categoryName } from './catalog.js'
+import { catalog, storeName, categoryName, sameUnit } from './catalog.js'
 import { memberName } from './session.js'
 import { byCategory, extraCat } from './despesas.js'
 
@@ -53,8 +53,8 @@ export function monthSummary(month, prev, expenses, extras = []) {
   for (const p of purchases) {
     if (seen.has(p.product_id)) continue
     seen.add(p.product_id)
-    const ref = catalog.purchases.find((x) => x.product_id === p.product_id && x.purchased_on < start)
-    if (!ref) continue
+    const ref = catalog.purchases.find((x) => x.product_id === p.product_id && x.purchased_on < start && sameUnit(x))
+    if (!ref || !sameUnit(p)) continue
     const diff = Number(p.price) - Number(ref.price)
     priceEffect += diff * Number(p.quantity)
     if (Math.abs(diff) >= 0.005) {
@@ -98,8 +98,8 @@ export function achievements(months) {
     for (const p of catalog.purchases) {
       if (p.month_id !== m.id || seen.has(p.product_id)) continue
       seen.add(p.product_id)
-      const ref = catalog.purchases.find((x) => x.product_id === p.product_id && x.purchased_on < m.month)
-      if (ref) priceSavings += (Number(ref.price) - Number(p.price)) * Number(p.quantity)
+      const ref = catalog.purchases.find((x) => x.product_id === p.product_id && x.purchased_on < m.month && sameUnit(x))
+      if (ref && sameUnit(p)) priceSavings += (Number(ref.price) - Number(p.price)) * Number(p.quantity)
     }
   }
   return { withinBudget, withBudget, goalsMet, goals, priceSavings, bestSaving }

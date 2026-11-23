@@ -44,12 +44,21 @@ export const categoryName = (id) => catalog.categories.find((c) => c.id === id)?
 
 const unitPrice = (p) => Number(p.price) / Number(p.pack_size || 1)
 
+// A compra foi registada na unidade atual do produto? (preço por kg não se compara com preço por unidade)
+// Compras antigas sem unidade contam como a unidade atual: ao mudar a unidade, as antigas ficam marcadas.
+export function sameUnit(p) {
+  if (!p.unit) return true
+  const prod = catalog.products.find((x) => x.id === p.product_id)
+  return !prod || p.unit === prod.unit
+}
+
 // Resumo de preços de um produto:
 //  last      = compra mais recente
 //  previous  = compra anterior noutra data (para dizer se subiu ou desceu)
 //  cheapest  = preço unitário mais baixo nos últimos 6 meses, e em que loja
 export function priceStats(productId) {
-  const list = catalog.purchases.filter((p) => p.product_id === productId) // já vem ordenado, mais recente primeiro
+  const history = catalog.purchases.filter((p) => p.product_id === productId) // já vem ordenado, mais recente primeiro
+  const list = history.filter(sameUnit)
   const last = list[0] ?? null
   const previous = last ? list.find((p) => p.purchased_on < last.purchased_on) ?? null : null
   let diff = null
@@ -62,10 +71,22 @@ export function priceStats(productId) {
     if (p.purchased_on < sinceStr) continue
     if (!cheapest || unitPrice(p) < unitPrice(cheapest)) cheapest = p
   }
-  return { last, previous, diff, cheapest, history: list }
+  return { last, previous, diff, cheapest, history }
 }
 
 // ---------- Escritas ----------
+// Enquanto a migração 008 não estiver aplicada, a coluna "unit" das compras não existe:
+// tenta com a unidade e, se a coluna faltar, grava sem ela.
+const missingUnit = (e) => /'unit' column|column "unit"|purchases\.unit/i.test(e?.message ?? '')
+export async function insertPurchase(row) {
+  let res = await supabase.from('purchases').insert(row).select().single()
+  if (res.error && missingUnit(res.error)) { const { unit, ...rest } = row; res = await supabase.from('purchases').insert(rest).select().single() }
+  return check(res)
+}
+async function stampOldUnit(productId, unit) {
+  const { error } = await supabase.from('purchases').update({ unit }).eq('product_id', productId).is('unit', null)
+  if (error && !missingUnit(error)) throw error
+}
 const hid = () => session.household.id
 
 export async function addStore(name, kind = 'supermercado') {
@@ -94,6 +115,11 @@ export async function saveProduct(product) {
     pack_size: product.pack_size || 1,
   }
   let id = product.id
+  // Mudar a unidade de um produto existente: as compras antigas ficam marcadas com a unidade antiga
+  const before = id ? catalog.products.find((x) => x.id === id) : null
+  if (before && before.unit !== fields.unit) {
+    await stampOldUnit(id, before.unit)
+  }
   if (!id) {
     // "Remover produto" só esconde o produto (para guardar o histórico de preços).
     // Criar outra vez um produto com o mesmo nome recupera esse produto e o seu histórico.
@@ -112,16 +138,26 @@ export async function saveProduct(product) {
   await loadCatalog(true)
   return saved
 }
+// Muda só a unidade do produto (escolhida ao comprar: Qtd, Kg ou Litro)
+export async function setProductUnit(id, unit) {
+  const p = catalog.products.find((x) => x.id === id)
+  // As compras antigas ficam marcadas com a unidade antiga, para não se compararem com a nova
+  await stampOldUnit(id, p?.unit ?? 'un')
+  for (const x of catalog.purchases) if (x.product_id === id && !x.unit) x.unit = p?.unit ?? 'un'
+  check(await supabase.from('products').update({ unit }).eq('id', id))
+  if (p) p.unit = unit
+}
+
 export async function archiveProduct(id) {
   check(await supabase.from('products').update({ archived: true }).eq('id', id))
   await loadCatalog(true)
 }
 export async function addPurchase({ product_id, store_id, price, quantity = 1, purchased_on }) {
   const product = catalog.products.find((p) => p.id === product_id)
-  check(await supabase.from('purchases').insert({
+  await insertPurchase({
     household_id: hid(), product_id, store_id: store_id || null,
-    price, quantity, pack_size: product?.pack_size || 1, purchased_on,
-  }))
+    price, quantity, pack_size: product?.pack_size || 1, purchased_on, unit: product?.unit ?? 'un',
+  })
   await loadCatalog(true)
 }
 export async function deletePurchase(id) {
