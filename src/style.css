@@ -305,3 +305,4 @@ select.mini { width: auto; min-height: 40px; padding: 4px 8px; }
   border-bottom: 1px solid var(--line);
 }
 @media (min-width: 900px) { .sticky-tools { position: static; } }
+.seg.units { grid-template-columns: 1fr 1fr 1fr; }

@@ -502,3 +502,4 @@ end $$;
 -- Migração 008
 alter table public.purchases alter column price type numeric(14,4);
 alter table public.list_items alter column planned_price type numeric(14,4);
+alter table public.purchases add column if not exists unit text check (unit in ('un', 'kg', 'L', 'monte'));

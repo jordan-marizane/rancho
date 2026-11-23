@@ -4,7 +4,7 @@
 //  * na loja: "Comprei" regista o preço pago (já vem preenchido com o previsto)
 import { ref, computed, onMounted } from 'vue'
 import Sheet from './Sheet.vue'
-import { catalog, storeName, addStore } from '../lib/catalog.js'
+import { catalog, storeName, addStore, setProductUnit } from '../lib/catalog.js'
 import { rancho, buy, unbuy, removeFromList, savePlan, updateItem, boughtThisMonth, lastBefore, expectedPrice } from '../lib/rancho.js'
 import { mt, monthLabel, dayLabel, today, qtyLabel, perUnit, parseNum } from '../lib/format.js'
 import { memberName } from '../lib/session.js'
@@ -18,15 +18,18 @@ const ref0 = computed(() => lastBefore(props.item.product_id))
 const bought = computed(() => boughtThisMonth(props.item.product_id))
 // A linha atualizada da lista (pode ter mudado noutro telemóvel)
 const live = computed(() => rancho.items.find((i) => i.id === props.item.id) ?? props.item)
-const unit = computed(() => product.value?.unit ?? 'un')
+// Unidade escolhida na compra: Qtd (un), Kg ou Litro. Fica guardada no produto para a próxima vez.
+const unitSel = ref(product.value?.unit ?? 'un')
+const unit = computed(() => unitSel.value)
+const unitChanged = computed(() => (unitSel.value === 'un' ? !['un', 'monte'].includes(product.value?.unit ?? 'un') : unitSel.value !== product.value?.unit))
 const byWeight = computed(() => unit.value === 'kg' || unit.value === 'L')
 const qtyName = computed(() => (unit.value === 'kg' ? 'Peso (kg)' : unit.value === 'L' ? 'Litros' : 'Quantidade'))
 const expected = expectedPrice(props.item)
 
 const priceInput = ref(null)
-// Modo do preço: 'unit' = preço por unidade/kg; 'total' = total pago (a app divide pela quantidade).
-// Nos produtos ao peso, o normal é ver o total no talão/balança.
-const mode = ref(product.value && (product.value.unit === 'kg' || product.value.unit === 'L') ? 'total' : 'unit')
+// Kg: escreve-se o peso e o total pago, e a app calcula o preço por kg.
+// Qtd e Litro: quantidade × preço de 1 (ou por litro).
+const mode = computed(() => (unit.value === 'kg' ? 'total' : 'unit'))
 const qty = ref(String(Number(props.item.planned_qty)).replace('.', ','))
 const qtyNum = computed(() => parseNum(qty.value))
 const price = ref(expected != null ? fmtIn(mode.value === 'total' ? expected * Number(props.item.planned_qty) : expected) : '')
@@ -57,14 +60,17 @@ const value = computed(() => {
 })
 const total = computed(() => (mode.value === 'total' ? entered.value : value.value * qtyNum.value))
 const valid = computed(() => Number.isFinite(value.value) && value.value >= 0)
-const diff = computed(() => (ref0.value && valid.value ? value.value - Number(ref0.value.price) : null))
+// Comparar com o último preço só faz sentido na mesma unidade
+const diff = computed(() => (ref0.value && valid.value && !unitChanged.value ? value.value - Number(ref0.value.price) : null))
 const planChanged = computed(() => qtyNum.value !== Number(props.item.planned_qty) ||
   (valid.value ? value.value : null) !== expected)
-function setMode(m) {
-  if (m === mode.value) return
-  if (valid.value && qtyOk.value) price.value = fmtIn(m === 'total' ? value.value * qtyNum.value : value.value)
-  mode.value = m
+function setUnit(u) {
+  if (u === unitSel.value) return
+  const toTotal = u === 'kg', fromTotal = unitSel.value === 'kg'
+  if (valid.value && qtyOk.value && toTotal !== fromTotal) price.value = fmtIn(toTotal ? value.value * qtyNum.value : value.value)
+  unitSel.value = u
 }
+async function keepUnit() { if (unitChanged.value) await setProductUnit(product.value.id, unitSel.value) }
 
 onMounted(() => { if (!ref0.value && !bought.value.length) priceInput.value?.focus() })
 
@@ -73,10 +79,12 @@ async function run(fn) {
   try { await fn() } catch (e) { error.value = friendlyError(e) } finally { busy.value = false }
 }
 const plan = () => run(async () => {
+  await keepUnit()
   await savePlan(props.item, { qty: qtyNum.value || 1, price: valid.value ? value.value : null })
   emit('close')
 })
 const purchase = () => run(async () => {
+  await keepUnit()
   await buy(live.value, { price: value.value, quantity: qtyNum.value || 1, store_id: store.value, purchased_on: date.value })
   emit('close')
 })
@@ -122,6 +130,11 @@ const unmark = () => run(async () => { await updateItem(live.value.id, { done: f
       </div>
 
       <form v-if="!bought.length" class="stack" @submit.prevent="purchase">
+        <div class="seg units" role="radiogroup" aria-label="Como se compra" style="margin:0">
+          <button type="button" role="radio" :aria-checked="unit !== 'kg' && unit !== 'L'" :class="{ on: unit !== 'kg' && unit !== 'L' }" @click="setUnit('un')">Qtd</button>
+          <button type="button" role="radio" :aria-checked="unit === 'kg'" :class="{ on: unit === 'kg' }" @click="setUnit('kg')">Kg</button>
+          <button type="button" role="radio" :aria-checked="unit === 'L'" :class="{ on: unit === 'L' }" @click="setUnit('L')">Litro</button>
+        </div>
         <div class="row2">
           <div>
             <span class="lbl">{{ qtyName }}</span>
@@ -131,17 +144,13 @@ const unmark = () => run(async () => { await updateItem(live.value.id, { done: f
               <button type="button" aria-label="Mais" @click="step(1)">+</button>
             </div>
           </div>
-          <label>{{ mode === 'total' ? 'Total pago (MT)' : byWeight ? `Preço ${perUnit(unit)} (MT)` : 'Preço de 1 (MT)' }}
+          <label>{{ unit === 'kg' ? 'Total pago (MT)' : unit === 'L' ? 'Preço por litro (MT)' : 'Preço de 1 (MT)' }}
             <input ref="priceInput" v-model="price" inputmode="decimal" class="price-input"
                    :placeholder="ref0 ? String(Number(ref0.price)) : '0'" aria-label="Preço em meticais" @focus="$event.target.select()" />
           </label>
         </div>
-        <div class="seg small-seg" role="radiogroup" aria-label="Como escrever o preço" style="margin:0">
-          <button type="button" :class="{ on: mode === 'unit' }" @click="setMode('unit')">{{ byWeight ? `Preço ${perUnit(unit)}` : 'Preço de 1' }}</button>
-          <button type="button" :class="{ on: mode === 'total' }" @click="setMode('total')">Total pago</button>
-        </div>
         <p v-if="valid && qtyOk" class="muted small" style="margin:0">
-          <template v-if="mode === 'total'">{{ qtyLabel(qtyNum, unit) }} por {{ mt(total) }} = <b>{{ mt(value) }}{{ perUnit(unit) || ' cada' }}</b></template>
+          <template v-if="mode === 'total'">{{ qtyLabel(qtyNum, unit) }} por {{ mt(total) }} = <b>{{ mt(value) }}/kg</b></template>
           <template v-else>Total: <b>{{ mt(total) }}</b></template>
         </p>
         <p v-if="diff != null && Math.abs(diff) >= 0.005" class="cmp" :class="diff > 0 ? 'up' : 'down'">
@@ -153,7 +162,7 @@ const unmark = () => run(async () => { await updateItem(live.value.id, { done: f
           📝 Guardar na lista (ainda não comprei)
         </button>
         <button class="btn primary big-btn" :disabled="busy || !valid || !qtyOk">
-          ✓ Comprei<template v-if="valid"> a {{ mt(value) }}</template>
+          ✓ Comprei<template v-if="valid"> · {{ mode === 'total' || qtyNum !== 1 ? mt(total) : mt(value) }}</template>
         </button>
 
         <div>
