@@ -3,7 +3,7 @@
 // Também atualiza quando a app volta a ficar visível (ex.: ao desbloquear o telemóvel).
 import { watch } from 'vue'
 import { supabase } from './supabase.js'
-import { session } from './session.js'
+import { session, loadMembers } from './session.js'
 import { catalog, loadCatalog } from './catalog.js'
 import { rancho, loadRancho } from './rancho.js'
 import { despesas, loadDespesas } from './despesas.js'
@@ -18,6 +18,7 @@ let lastRefresh = 0
 async function refresh() {
   lastRefresh = Date.now()
   try {
+    if (session.household) await loadMembers() // alguém pode ter entrado na família
     if (catalog.loaded) await loadCatalog(true)
     if (rancho.loaded) await loadRancho(rancho.monthStart)
     if (despesas.loaded) await loadDespesas()

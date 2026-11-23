@@ -2,7 +2,8 @@
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import { catalog, storeName } from '../lib/catalog.js'
 import { rancho, loadRancho, refreshAll, startMonth, setBudget, summary, boughtThisMonth, lastBefore, expectedPrice, updateItem, activeItems } from '../lib/rancho.js'
-import { mt, monthLabel, norm } from '../lib/format.js'
+import { mt, monthLabel, norm, qtyLabel, perUnit } from '../lib/format.js'
+import { memberName } from '../lib/session.js'
 import { friendlyError } from '../lib/errors.js'
 import QuickPrice from '../components/QuickPrice.vue'
 import AddToList from '../components/AddToList.vue'
@@ -146,7 +147,8 @@ const toggleDone = (r) => run(() => updateItem(r.it.id, { done: !r.it.done }))
         <div class="muted small">{{ sum.done }} de {{ sum.count }} produtos no cesto<span v-if="sum.missingPrice"> · {{ sum.missingPrice }} sem preço anterior</span></div>
       </div>
 
-      <!-- Filtros -->
+      <!-- Filtros (ficam fixos no topo ao rolar a lista) -->
+      <div class="sticky-tools">
       <div class="chips scroll" role="tablist" aria-label="Filtrar por loja">
         <button class="chip" :class="{ on: !store }" @click="pickStore('')">Todas</button>
         <button v-for="s in catalog.stores" :key="s.id" class="chip" :class="{ on: store === s.id }" @click="pickStore(s.id)">
@@ -159,6 +161,7 @@ const toggleDone = (r) => run(() => updateItem(r.it.id, { done: !r.it.done }))
           <button :class="{ on: groupBy === 'categoria' }" @click="setGroup('categoria')">Categoria</button>
           <button :class="{ on: groupBy === 'loja' }" @click="setGroup('loja')">Loja</button>
         </div>
+      </div>
       </div>
       <div class="links">
         <button class="link" @click="toggleHide">{{ hideDone ? 'Mostrar os do cesto' : 'Esconder os do cesto' }}</button>
@@ -180,10 +183,11 @@ const toggleDone = (r) => run(() => updateItem(r.it.id, { done: !r.it.done }))
             <button class="check" :aria-label="r.isDone ? 'Tirar do cesto' : 'Pôr no cesto sem preço'"
                     :disabled="r.bought.length > 0" @click="toggleDone(r)">{{ r.isDone ? '✓' : '' }}</button>
             <button class="prow" @click="openItem = r.it">
-              <span class="pname">{{ r.p.name }}<span v-if="r.qty !== 1" class="muted small"> · {{ r.qty }} × {{ mt(r.unit) }}</span></span>
+              <span class="pname">{{ r.p.name }}<span v-if="r.qty !== 1 || r.p.unit === 'kg' || r.p.unit === 'L'" class="muted small"> · {{ qtyLabel(r.qty, r.p.unit) }} × {{ mt(r.unit) }}{{ perUnit(r.p.unit) }}</span></span>
               <span class="pprice">{{ mt(r.sub) }}</span>
               <span class="pmeta muted small">
-                <template v-if="r.paid">{{ storeName(r.paid.store_id) }}<template v-if="r.ref0"> · antes {{ mt(r.ref0.price) }}</template></template>
+                <template v-if="r.paid">{{ storeName(r.paid.store_id) }} · {{ memberName(r.paid.created_by) }}<template v-if="r.ref0"> · antes {{ mt(r.ref0.price) }}</template></template>
+                <template v-else-if="r.it.done">✓ no cesto, sem preço · {{ memberName(r.it.updated_by) }}</template>
                 <template v-else-if="r.it.planned_price != null">📝 previsto<template v-if="r.ref0"> · antes {{ mt(r.ref0.price) }}</template></template>
                 <template v-else-if="r.ref0">{{ storeName(r.ref0.store_id) }} · {{ monthLabel(r.ref0.purchased_on) }}</template>
                 <template v-else>Sem preço anterior</template>
