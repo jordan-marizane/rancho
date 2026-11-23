@@ -57,8 +57,17 @@ export async function loadMembers() {
   session.members = data
 }
 
+// Nome de um membro da família. Se for alguém que entrou depois de esta app abrir,
+// recarrega a lista de membros (uma vez de cada vez) e o nome aparece logo a seguir.
+let reloadingMembers = false
 export function memberName(userId) {
-  return session.members.find((m) => m.user_id === userId)?.display_name ?? '—'
+  const m = session.members.find((x) => x.user_id === userId)
+  if (m) return m.display_name
+  if (userId && session.household && !reloadingMembers) {
+    reloadingMembers = true
+    loadMembers().catch(() => {}).finally(() => setTimeout(() => { reloadingMembers = false }, 30000))
+  }
+  return '—'
 }
 
 export function displayNameFromUser() {
